@@ -420,7 +420,7 @@ dialog.dialog::backdrop { background: rgba(20,27,38,.5); }
   background-image: linear-gradient(180deg, #FFFFFF 0%, #FFFFFF 38%, #F1E8DC 62%, #D9CCBB 100%);
   -webkit-text-stroke: .006em rgba(255,255,255,.55);
 }
-.merek-slogan { display: flex; align-items: center; gap: .55em; font-size: .18em; width: 0; min-width: 100%; }
+.merek-slogan { display: flex; align-items: center; gap: .5em; font-size: max(11.5px, .18em); width: 0; min-width: 100%; }
 .merek-slogan::before, .merek-slogan::after { content: ''; flex: 1; height: 2px; border-radius: 2px; min-width: .6em; }
 .merek-slogan::before { background: linear-gradient(90deg, rgba(224,70,85,0), #E04655); }
 .merek-slogan::after { background: linear-gradient(90deg, #E04655, rgba(224,70,85,0)); }
@@ -430,6 +430,8 @@ dialog.dialog::backdrop { background: rgba(20,27,38,.5); }
   text-shadow: .03em .05em 0 #B8202E, .06em .1em 0 #861C27, .06em .14em .2em rgba(8,6,12,.55);
 }
 .slogan-isi::after { background-image: linear-gradient(180deg, #FFFFFF 0%, #FFFFFF 50%, #F0E5D6 100%); }
+/* Layar sempit: jarak huruf dirapatkan agar tagline tetap selebar "HSE" pada ukuran yang terbaca */
+@media (max-width: 639px) { .slogan-isi { letter-spacing: .2em; margin-right: -.2em; } }
 
 .masuk-merek .tagline { margin-top: var(--j6); font-size: 20px; font-weight: 600; line-height: 1.35; max-width: 24ch; letter-spacing: -.01em; color: rgba(255,255,255,.94); }
 .masuk-merek .nilai { list-style: none; padding: 0; margin: var(--j5) 0 0; display: none; flex-direction: column; gap: var(--j3); }
@@ -674,7 +676,8 @@ a.angka:hover { border-color: var(--garis-kuat); box-shadow: var(--bayang-2); }
   .grid-menu { grid-template-columns: repeat(2, 1fr); }
   .grid-angka { grid-template-columns: repeat(4, 1fr); }
   .filter { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; }
-  .masuk-merek { padding: 56px 32px 84px; }
+  /* Tablet: isi panel merek sejajar dengan tepi kartu formulir yang berada di tengah */
+  .masuk-merek { padding: 56px max(32px, calc((100% - 428px) / 2)) 84px; }
   .masuk-logo { --hse: 76px; }
 }
 @media (min-width: 900px) {
