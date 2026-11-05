@@ -2,6 +2,7 @@
    config.js — SATU-SATUNYA BERKAS YANG PERLU ANDA UBAH.
    Isi dua nilai di bawah dari Supabase > Project Settings > API (atau "Data API"):
      - SUPABASE_URL      = "Project URL", bentuknya https://xxxxxxxx.supabase.co
+                           (TANPA akhiran /rest/v1/ atau /auth/v1/ — pustaka Supabase menambahkannya sendiri)
      - SUPABASE_ANON_KEY = kunci "anon public" (diawali eyJ...)
    JANGAN PERNAH menaruh kunci "service_role" / "secret" di sini.
    Bila dikosongkan (''), aplikasi berjalan dalam MODE DEMO (data contoh di HP).

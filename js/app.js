@@ -285,18 +285,21 @@
       h('div', { class: 'kartu-kepala' }, h('h2', { text: 'Coba cepat' }), badge('MODE DEMO', 'demo')),
       h('p', { class: 'kecil', text: 'Basis data belum disambungkan. Pilih peran untuk mencoba dengan data contoh yang tersimpan di HP ini saja:' }),
       API.akunDemo().map(a => tombol([ikon(a.peran === 'k3rs' ? 'perisai' : a.peran === 'pj_unit' ? 'tugas' : 'pengguna'), 'Masuk sebagai ' + PERAN[a.peran]], async ev => { await sibuk(ev.currentTarget, async () => { await API.masuk(a.email, a.sandi); await muatSesi(); pergi('/beranda'); }).catch(() => {}); }, 'kedua', { 'data-peran': a.peran }))) : null;
-    // Siluet perbukitan sederhana (aksen kedaerahan, dekoratif)
-    const bukit = document.createElementNS(NS_SVG, 'svg'); bukit.setAttribute('class', 'bukit'); bukit.setAttribute('viewBox', '0 0 600 80'); bukit.setAttribute('preserveAspectRatio', 'none'); bukit.setAttribute('aria-hidden', 'true');
-    const jalur = document.createElementNS(NS_SVG, 'path'); jalur.setAttribute('d', 'M0 80V58l70-22 60 14 90-40 70 28 50-12 80 30 60-18 120 28v14z'); jalur.setAttribute('fill', '#fff'); bukit.appendChild(jalur);
+    // Identitas merek: lambang + "HSE" + "SAFETY FIRST" sebagai satu kesatuan (efek 3D lewat CSS)
+    const kunciMerek = h('div', { class: 'masuk-logo' },
+      h('span', { class: 'lambang' }, h('img', { src: 'assets/logo.png', alt: '', width: 256, height: 256 })),
+      h('span', { class: 'merek-teks' },
+        h('span', { class: 'merek-hse3d', 'data-teks': 'HSE', text: 'HSE' }),
+        h('span', { class: 'merek-slogan' }, h('span', { class: 'slogan-isi', 'data-teks': 'SAFETY FIRST', text: 'SAFETY FIRST' }))));
     tampil(h('div', { class: 'masuk-layar' },
       h('section', { class: 'masuk-merek', 'aria-label': 'Tentang aplikasi' },
-        h('div', { class: 'masuk-logo' }, h('span', { class: 'logo-putih' }, h('img', { src: 'assets/logo.png', alt: '', width: 44, height: 44 })), h('span', { class: 'nama' }, namaHSE(true, 'besar'))),
+        kunciMerek,
         h('p', { class: 'tagline', text: 'Laporkan bahaya di tempat kerja dalam 3 ketukan.' }),
         h('ul', { class: 'nilai' },
           h('li', {}, ikon('centang'), h('span', { text: 'Tanpa menyalahkan siapa pun — boleh tanpa nama, dengan kode lacak.' })),
           h('li', {}, ikon('tugas'), h('span', { text: 'Setiap laporan punya satu penanggung jawab dan tanggal target.' })),
           h('li', {}, ikon('gembok'), h('span', { text: 'Teks yang memuat identitas pasien ditolak otomatis.' }))),
-        h('p', { class: 'asal', text: 'Motif aksen terinspirasi kain tenun Bentenan, Sulawesi Utara.' }), bukit),
+        h('p', { class: 'asal', text: 'Motif aksen terinspirasi kain tenun Bentenan, Sulawesi Utara.' })),
       h('main', { class: 'masuk-form', id: 'konten' }, form, demo, peringatanData())));
   }
 
