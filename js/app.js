@@ -211,8 +211,12 @@
   window.addEventListener('online', () => kirimAntrean());
 
   // ---------- Kerangka halaman ----------
-  const logoImg = () => h('img', { src: 'assets/logo.png', alt: '', width: 36, height: 36 });
-  const namaHSE = (putih, kls) => h('img', { src: putih ? 'assets/nama-hse-putih.svg' : 'assets/nama-hse.svg', alt: 'HSE', class: 'merek-hse' + (kls ? ' ' + kls : '') });
+  // Identitas merek yang sama di seluruh aplikasi: lambang + "HSE" + "SAFETY FIRST" (efek 3D lewat CSS)
+  const lambang = () => h('span', { class: 'lambang' }, h('img', { src: 'assets/logo.png', alt: '', width: 256, height: 256 }));
+  const kunciMerek = kls => h('div', { class: 'kunci-merek' + (kls ? ' ' + kls : '') }, lambang(),
+    h('span', { class: 'merek-teks' },
+      h('span', { class: 'merek-hse3d', 'data-teks': 'HSE', text: 'HSE' }),
+      h('span', { class: 'merek-slogan' }, h('span', { class: 'slogan-isi', 'data-teks': 'SAFETY FIRST', text: 'SAFETY FIRST' }))));
   // Penanda koneksi & antrean (memakai fitur antrean offline yang sudah ada)
   function penandaKoneksi() {
     const n = LS.get(KUNCI_ANTREAN, []).length;
@@ -225,7 +229,7 @@
 
   function bilahAtas(judul, kembali) {
     return h('header', { class: 'bilah' },
-      kembali ? h('button', { type: 'button', class: 'kembali', 'aria-label': 'Kembali', onclick: () => history.length > 1 ? history.back() : pergi('/beranda') }, ikon('kiri')) : h('span', { class: 'logo', 'aria-hidden': 'true' }, logoImg()),
+      kembali ? h('button', { type: 'button', class: 'kembali', 'aria-label': 'Kembali', onclick: () => history.length > 1 ? history.back() : pergi('/beranda') }, ikon('kiri')) : h('a', { class: 'logo', href: '#/beranda', 'aria-label': 'HSE Safety First — Beranda' }, lambang()),
       h('h1', { text: judul }),
       h('div', { class: 'bilah-kanan' }, penandaKoneksi(), API.mode === 'demo' ? badge('MODE DEMO', 'demo') : null));
   }
@@ -252,7 +256,7 @@
     menu.push(grup('Lainnya', [tautan('/bantuan', 'bantuan', 'Bantuan'), tautan('/akun', 'pengguna', 'Akun')]));
     const nama = S.sesi.profil.nama_tampilan;
     return h('aside', { class: 'sidebar', 'aria-label': 'Navigasi samping' },
-      h('a', { class: 'sb-merek', href: '#/beranda' }, logoImg(), h('span', { class: 'nama' }, namaHSE(true), h('span', { class: 'sub', text: (S.ref && S.ref.pengaturan.nama_instansi) || 'Sistem K3 rumah sakit' }))),
+      h('a', { class: 'sb-merek', href: '#/beranda', 'aria-label': 'HSE Safety First — Beranda' }, kunciMerek('kecil'), h('span', { class: 'sub', text: (S.ref && S.ref.pengaturan.nama_instansi) || 'Sistem K3 rumah sakit' })),
       h('nav', { 'aria-label': 'Menu utama (samping)' }, menu),
       h('div', { class: 'sb-motif', 'aria-hidden': 'true' }),
       h('div', { class: 'sb-pengguna' }, h('span', { class: 'avatar', 'aria-hidden': 'true', text: inisial(nama) }),
@@ -285,15 +289,9 @@
       h('div', { class: 'kartu-kepala' }, h('h2', { text: 'Coba cepat' }), badge('MODE DEMO', 'demo')),
       h('p', { class: 'kecil', text: 'Basis data belum disambungkan. Pilih peran untuk mencoba dengan data contoh yang tersimpan di HP ini saja:' }),
       API.akunDemo().map(a => tombol([ikon(a.peran === 'k3rs' ? 'perisai' : a.peran === 'pj_unit' ? 'tugas' : 'pengguna'), 'Masuk sebagai ' + PERAN[a.peran]], async ev => { await sibuk(ev.currentTarget, async () => { await API.masuk(a.email, a.sandi); await muatSesi(); pergi('/beranda'); }).catch(() => {}); }, 'kedua', { 'data-peran': a.peran }))) : null;
-    // Identitas merek: lambang + "HSE" + "SAFETY FIRST" sebagai satu kesatuan (efek 3D lewat CSS)
-    const kunciMerek = h('div', { class: 'masuk-logo' },
-      h('span', { class: 'lambang' }, h('img', { src: 'assets/logo.png', alt: '', width: 256, height: 256 })),
-      h('span', { class: 'merek-teks' },
-        h('span', { class: 'merek-hse3d', 'data-teks': 'HSE', text: 'HSE' }),
-        h('span', { class: 'merek-slogan' }, h('span', { class: 'slogan-isi', 'data-teks': 'SAFETY FIRST', text: 'SAFETY FIRST' }))));
     tampil(h('div', { class: 'masuk-layar' },
       h('section', { class: 'masuk-merek', 'aria-label': 'Tentang aplikasi' },
-        kunciMerek,
+        kunciMerek('masuk-logo'),
         h('p', { class: 'tagline', text: 'Laporkan bahaya di tempat kerja dalam 3 ketukan.' }),
         h('ul', { class: 'nilai' },
           h('li', {}, ikon('centang'), h('span', { text: 'Tanpa menyalahkan siapa pun — boleh tanpa nama, dengan kode lacak.' })),
@@ -336,6 +334,7 @@
     const kiri = [], kanan = [];
     const tglPanjang = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     kiri.push(h('section', { class: 'kartu sambutan', 'aria-label': 'Sambutan' },
+      kunciMerek('sambutan-merek'),
       h('span', { class: 'tanggal', text: tglPanjang }),
       h('h2', {}, 'Halo, ', h('span', { text: nama })),
       h('span', { class: 'peran-teks' }, ikon(p === 'k3rs' ? 'perisai' : p === 'pj_unit' ? 'tugas' : 'pengguna'), h('span', { text: PERAN[p] + (S.sesi.profil.unit_id ? ' · ' + namaUnit(S.sesi.profil.unit_id) : '') }))));

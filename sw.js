@@ -1,6 +1,6 @@
 /* sw.js — Service worker: menyimpan berkas tampilan agar aplikasi tetap terbuka saat sinyal lemah.
    Data laporan dari server TIDAK disimpan di cache (privasi). */
-const VERSI_CACHE = 'lapor-k3-v1.2.1';
+const VERSI_CACHE = 'lapor-k3-v1.3.0';
 const BERKAS = ['./', './index.html', './config.js', './css/app.css', './js/qr.js', './js/asisten.js', './js/api.js', './js/app.js',
   './manifest.webmanifest', './icons/ikon-192.png', './icons/ikon-512.png',
   './assets/logo.png', './assets/nama-hse.svg', './assets/nama-hse-putih.svg', './assets/bentenan-tenun.svg', './assets/bentenan-merah.svg', './assets/bentenan-terang.svg', './assets/pita-merah.svg',
