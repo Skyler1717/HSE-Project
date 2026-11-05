@@ -1,0 +1,17 @@
+{
+  "name": "HSE",
+  "short_name": "HSE",
+  "description": "Pelaporan bahaya dan tindak lanjut K3 rumah sakit",
+  "lang": "id",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF9F7",
+  "theme_color": "#B8202E",
+  "icons": [
+    { "src": "icons/ikon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/ikon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/ikon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
