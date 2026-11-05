@@ -43,7 +43,10 @@
       mode: 'supabase',
       async init() {
         await muatSkrip(SUPABASE_JS);
-        sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY,
+        // Project URL harus berupa akar proyek (https://xxxx.supabase.co). Akhiran /rest/v1/ atau /auth/v1/
+        // yang tidak sengaja ikut tersalin dibuang, karena supabase-js menambahkannya sendiri.
+        const urlProyek = String(CFG.SUPABASE_URL).trim().replace(/\/+(rest|auth|storage|realtime|functions)\/v1\/?.*$/i, '').replace(/\/+$/, '');
+        sb = window.supabase.createClient(urlProyek, CFG.SUPABASE_ANON_KEY,
           { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
       },
       async masuk(email, sandi) {
