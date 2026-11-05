@@ -7,6 +7,6 @@
    Bila dikosongkan (''), aplikasi berjalan dalam MODE DEMO (data contoh di HP).
    ========================================================================== */
 window.K3_CONFIG = {
-  SUPABASE_URL: 'https://fkynbegfeodymincuucy.supabase.co/rest/v1/',
+  SUPABASE_URL: 'https://fkynbegfeodymincuucy.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZreW5iZWdmZW9keW1pbmN1dWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4ODQ3NzgsImV4cCI6MjEwOTQ2MDc3OH0.cbJRBsuguorEmO9jkEwo04pzrRbFK2xJK-d7EQp0U7E'
 };
