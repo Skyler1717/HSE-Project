@@ -1,4 +1,8 @@
-# Lapor K3 — Aplikasi Pelaporan dan Tindak Lanjut Bahaya K3 Rumah Sakit
+# HSE — Platform Keselamatan Kerja Rumah Sakit (Lapor K3 + HSE Intelligence)
+
+> **Versi 2.0:** HSE Intelligence (peringatan dini, peta risiko, epidemiologi, cuaca, kartu keselamatan), pencarian cerdas + riwayat 60 hari,
+> JSA, inspeksi terpandu bersuara, pemantauan K3, SOP & dokumen (OCR), laporan bulanan, sinkron Google Sheets, dan tiga tema.
+> Aktivasi: lihat **docs/PANDUAN_HSE_INTELLIGENCE.md**.
 
 Aplikasi web yang bisa dipasang di layar HP (PWA) untuk sistem K3 empat tahap:
 **(a) pencatatan bahaya → (b) penetapan penanggung jawab → (c) tindak lanjut pengendalian → (d) pemantauan status.**
@@ -17,6 +21,10 @@ Aplikasi web yang bisa dipasang di layar HP (PWA) untuk sistem K3 empat tahap:
 | `js/api.js` | Penghubung ke basis data (mode Supabase) atau data contoh di HP (mode demo) |
 | `js/asisten.js` | Asisten K3: AI sederhana berbasis aturan, berjalan di HP, tanpa layanan luar |
 | `js/qr.js` | Pembuat kode QR per unit (tanpa pustaka luar) |
+| `js/intel.js`, `js/grafik.js` | Mesin HSE Intelligence (aturan + statistik) dan grafik/ilustrasi SVG |
+| `js/modul.js`, `js/modul-kerja.js`, `js/modul-dok.js` | Halaman Intelligence, pencarian, JSA, inspeksi, pemantauan, SOP, laporan bulanan, Google Sheets |
+| `supabase/20_modul_hse.sql`, `supabase/29_rollback_modul_hse.sql` | Migrasi modul baru dan pembatalannya |
+| `integrasi/google-sheets/Kode.gs` | Skrip Google Sheets (gratis) |
 | `sw.js`, `manifest.webmanifest`, `icons/` | Agar bisa dipasang di layar HP dan tetap terbuka saat sinyal lemah |
 | `assets/` | Logo dan motif aksen (gambar geometris buatan sendiri yang terinspirasi tenun Bentenan, Sulawesi Utara) |
 | `fonts/` | Huruf Inter (lisensi SIL OFL 1.1, lihat `fonts/LISENSI-Inter-OFL.txt`) — disimpan lokal, tanpa memuat dari luar |

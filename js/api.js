@@ -12,13 +12,15 @@
   class GalatJaringan extends Error { constructor(m) { super(m || 'Tidak ada koneksi internet'); this.jaringan = true; } }
 
   function terjemahGalat(e) {
+    if (e && (e.belumSiap || e.jaringan)) return e;   // sudah diterjemahkan
     const m = (e && (e.message || e.error_description || e.msg)) || String(e);
     if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return new GalatJaringan();
     if (/Invalid login credentials/i.test(m)) return new Error('Email atau kata sandi salah.');
     if (/Email not confirmed/i.test(m)) return new Error('Email belum diverifikasi. Buka tautan di email Anda atau hubungi admin.');
     if (/JWT expired|invalid JWT/i.test(m)) return new Error('Sesi berakhir. Silakan masuk lagi.');
     if (/Invalid TOTP code|invalid.*code/i.test(m)) return new Error('Kode 6 angka salah atau kedaluwarsa. Coba kode terbaru.');
-    if (/permission denied/i.test(m)) return new Error('Anda tidak berwenang melakukan ini.');
+    if (/permission denied|row-level security/i.test(m)) return new Error('Anda tidak berwenang melakukan ini.');
+    if (/Could not find the (table|function)|relation .* does not exist|function .* does not exist|schema cache/i.test(m)) { const g = new Error('Modul ini belum diaktifkan di basis data. Admin perlu menjalankan supabase/20_modul_hse.sql di Supabase.'); g.belumSiap = true; return g; }
     if (/Password should be|weak/i.test(m)) return new Error('Kata sandi terlalu lemah. Pakai minimal 10 karakter: huruf besar, huruf kecil, dan angka.');
     return new Error(m.replace(/^.*?ERROR:\s*/, ''));
   }
@@ -125,9 +127,48 @@
       },
       async simpanKategori(k) { cek(await sb.from('kategori').update({ nama: k.nama, contoh: k.contoh, aktif: k.aktif }).eq('kode', k.kode)); },
       async logAktivitas() { return cek(await sb.from('log_aktivitas').select('*').order('id', { ascending: false }).limit(2000)); },
-      catatEkspor: j => panggil('catat_ekspor', { p_jenis: j }).catch(() => null)
+      catatEkspor: j => panggil('catat_ekspor', { p_jenis: j }).catch(() => null),
+
+      // ---------- Modul HSE lanjutan (supabase/20_modul_hse.sql) ----------
+      async daftarModul(tabel) {
+        if (!MODUL.includes(tabel)) throw new Error('Modul tidak dikenal');
+        try { return cek(await sb.from(tabel).select('*').order('dibuat_pada', { ascending: false }).limit(1000)); } catch (e) { throw terjemahGalat(e); }
+      },
+      async simpanModul(tabel, d) {
+        if (!MODUL.includes(tabel)) throw new Error('Modul tidak dikenal');
+        const data = Object.assign({}, d); delete data.dibuat_oleh; delete data.dibuat_pada; delete data.diperbarui_pada; delete data.nomor; delete data.disetujui_oleh;
+        try {
+          if (data.id) { const id = data.id; delete data.id; return cek(await sb.from(tabel).update(data).eq('id', id).select().single()); }
+          return cek(await sb.from(tabel).insert(data).select().single());
+        } catch (e) { throw terjemahGalat(e); }
+      },
+      async hapusModul(tabel, id) { if (!MODUL.includes(tabel)) throw new Error('Modul tidak dikenal'); try { cek(await sb.from(tabel).delete().eq('id', id)); } catch (e) { throw terjemahGalat(e); } },
+      async daftarDokumen() { try { return cek(await sb.from('dokumen').select('id,judul,nomor,versi,jenis,berlaku_mulai,status,menggantikan,unit_id,path,nama_berkas,mime,ukuran,metode_ekstraksi,dibuat_pada').order('judul').limit(1000)); } catch (e) { throw terjemahGalat(e); } },
+      async simpanDokumen(meta, bagian, berkas) {
+        const id = crypto.randomUUID(); let path = null;
+        try {
+          if (berkas) { path = id + '/' + berkas.name.replace(/[^A-Za-z0-9._-]+/g, '_').slice(-120); cek(await sb.storage.from('dokumen').upload(path, berkas, { contentType: berkas.type || 'application/octet-stream', upsert: false })); }
+          cek(await sb.from('dokumen').insert(Object.assign({}, meta, { id, path, nama_berkas: berkas ? berkas.name.slice(0, 160) : '', mime: berkas ? berkas.type : '', ukuran: berkas ? berkas.size : null })));
+          for (let i = 0; i < bagian.length; i += 50) cek(await sb.from('dokumen_bagian').insert(bagian.slice(i, i + 50).map(b => ({ dokumen_id: id, halaman: b.halaman, teks: b.teks.slice(0, 20000) }))));
+          return id;
+        } catch (e) { throw terjemahGalat(e); }
+      },
+      async ubahDokumen(id, data) { try { cek(await sb.from('dokumen').update(data).eq('id', id)); } catch (e) { throw terjemahGalat(e); } },
+      async isiDokumen(id) { try { return cek(await sb.from('dokumen_bagian').select('halaman,teks').eq('dokumen_id', id).order('halaman').limit(2000)); } catch (e) { throw terjemahGalat(e); } },
+      async urlDokumen(path) { const d = cek(await sb.storage.from('dokumen').createSignedUrl(path, 300)); return d.signedUrl; },
+      cariDokumen: q => panggil('cari_dokumen', { p_q: q, p_batas: 30 }),
+      async catatRiwayat(r) { try { cek(await sb.from('ai_riwayat').insert({ kategori: r.kategori, kueri: String(r.kueri).slice(0, 300), filter: r.filter || {}, ringkasan: String(r.ringkasan || '').slice(0, 1000), referensi: (r.referensi || []).slice(0, 200), jumlah_hasil: r.jumlah_hasil || 0, jenis_kejadian: r.jenis_kejadian || [] })); } catch (e) { throw terjemahGalat(e); } },
+      async daftarRiwayat() { try { return cek(await sb.from('ai_riwayat').select('*').order('pada', { ascending: false }).limit(500)); } catch (e) { throw terjemahGalat(e); } },
+      async hapusRiwayat(id) { try { cek(await sb.from('ai_riwayat').delete().eq('id', id)); } catch (e) { throw terjemahGalat(e); } },
+      ringkasanBulanan: awal => panggil('ringkasan_bulanan', { p_awal: awal }),
+      async arsipBulanan() { try { return cek(await sb.from('laporan_bulanan').select('*').order('periode', { ascending: false }).limit(36)); } catch (e) { throw terjemahGalat(e); } },
+      buatLaporanBulanan: (awal, paksa) => panggil('buat_laporan_bulanan', { p_awal: awal, p_paksa: !!paksa }),
+      sinkronRingkas: () => panggil('sinkron_ringkas'),
+      sinkronToken: t => panggil('sinkron_atur_token', { p_token: t }),
+      sinkronUlang: (tabel, gagal) => panggil('sinkron_antre_ulang', { p_tabel: tabel || null, p_hanya_gagal: !!gagal })
     };
   }
+  const MODUL = ['jsa', 'inspeksi', 'pemantauan'];
 
   // ===================== MODE DEMO (data contoh di HP) =====================
   function backendDemo() {
@@ -209,9 +250,92 @@
       simpan();
     }
 
+    // ---- Data contoh tambahan (versi 2): riwayat 5 bulan, JSA, inspeksi, pemantauan, dokumen ----
+    function benihV2() {
+      let x = 20260601; const acak = () => { x = (x * 1103515245 + 12345) % 2147483648; return x / 2147483648; };
+      const T = [['bahaya', 'fisik', 2, 'Kamar mandi pasien', 'Lantai kamar mandi licin, pegangan rambat longgar', 3, 3],
+        ['nyaris_celaka', 'biologi', 1, 'Ruang resusitasi', 'Jarum bekas di bed pasien saat merapikan linen', 4, 3],
+        ['kejadian', 'biologi', 4, 'Bed 3', 'Perawat tertusuk jarum setelah tindakan pengambilan darah', 4, 3],
+        ['bahaya', 'mekanik', 12, 'Panel listrik lantai 2', 'Pintu panel listrik terbuka, kabel terkelupas', 4, 3],
+        ['nyaris_celaka', 'mekanik', 12, 'Tangga plafon lorong', 'Teknisi hampir jatuh dari tangga saat mengganti lampu plafon', 4, 3],
+        ['kejadian', 'ergonomi', 2, 'Kamar perawatan', 'Perawat nyeri pinggang setelah memindahkan pasien tanpa alat bantu', 3, 4],
+        ['bahaya', 'kimia', 10, 'Ruang cuci', 'Desinfektan klorin disimpan di botol air mineral tanpa label', 3, 3],
+        ['bahaya', 'fisik', 10, 'Area mesin cuci', 'Kebisingan mesin cuci industri sepanjang shift', 3, 4],
+        ['nyaris_celaka', 'kebakaran', 9, 'Dapur', 'Selang gas kompor bocor tercium bau gas', 5, 2],
+        ['bahaya', 'limbah', 13, 'TPS limbah B3', 'Kantong limbah infeksius menumpuk melebihi kapasitas', 3, 3],
+        ['kejadian', 'psikososial', 1, 'Meja triase', 'Petugas didorong keluarga pasien saat antrean panjang', 3, 3],
+        ['bahaya', 'fisik', 12, 'Atap gedung B', 'Talang atap bocor saat hujan, air menetes ke lorong', 3, 4],
+        ['nyaris_celaka', 'mekanik', 14, 'Ruang hemodialisis', 'Roda kursi roda macet, pasien hampir terjatuh', 3, 3]];
+      const kini = Date.now();
+      for (let i = 0; i < 46; i++) {
+        const t = T[i < 40 ? Math.floor(acak() * T.length) : [3, 4, 3, 4, 11, 3][i - 40]];
+        const hari = i < 40 ? Math.floor(acak() * 150) + 3 : Math.floor(acak() * 25);
+        const jam = [8, 9, 10, 11, 13, 15, 16, 19, 22, 23, 2, 4][Math.floor(acak() * 12)];
+        const d = new Date(kini - hari * 864e5); d.setUTCHours((jam - 8 + 24) % 24, Math.floor(acak() * 60), 0, 0);
+        const tg = lokal(new Date(d.getTime() + 8 * 36e5));
+        const st = hari > 40 ? (acak() < .7 ? 'tertutup' : 'terkendali_sementara') : ['baru', 'ditugaskan', 'dalam_tindak_lanjut', 'tertutup'][Math.floor(acak() * 4)];
+        const id = 'contoh-v2-' + i, nilai = st === 'baru' ? null : t[5];
+        const l = { id, nomor: 'CONTOH-' + String(100 + i), jenis: t[0], kategori_kode: t[1], unit_id: t[2], lokasi: t[3], uraian: '[CONTOH] ' + t[4], mendesak: t[5] * t[6] >= 12 && acak() < .5, anonim: false,
+          pelapor_id: 'demo-petugas', dampak: nilai, kemungkinan: nilai ? t[6] : null, skor: nilai ? t[5] * t[6] : null, status: st, pj_id: st === 'baru' ? null : (t[2] === 7 ? 'demo-pj' : 'demo-k3rs'),
+          target_tanggal: st === 'baru' ? null : tambahHari(-hari + 14), level_pengendalian: ['tertutup'].includes(st) ? 'rekayasa' : st === 'terkendali_sementara' ? 'administratif' : st === 'dalam_tindak_lanjut' ? 'administratif' : null,
+          foto_path: null, contoh: true, tanggal_lapor: tg, dibuat_pada: d.toISOString(), diperbarui_pada: d.toISOString(), ditutup_pada: st === 'tertutup' ? new Date(d.getTime() + 10 * 864e5).toISOString() : null };
+        db.laporan.push(l);
+        db.riwayat.push({ id: db.riwayat.length + 1, laporan_id: id, dari: null, ke: 'baru', catatan: 'Laporan diterima', pada: l.dibuat_pada });
+        if (l.level_pengendalian) db.tl.push({ id: 'tl-' + id, laporan_id: id, oleh: l.pj_id, uraian: '[CONTOH] Tindakan perbaikan dicatat', level_pengendalian: l.level_pengendalian, bukti_teks: '[CONTOH] Bukti di unit', bukti_foto_path: null, dibuat_pada: new Date(d.getTime() + 3 * 864e5).toISOString() });
+      }
+      const sk = (l) => Math.max(...l.map(x => (x.dampak || 1) * (x.kemungkinan || 1)));
+      const jsa = [
+        { pekerjaan: 'Mengganti lampu plafon lorong lantai 2', unit_id: 12, lokasi: 'Lorong lantai 2', luar_ruangan: false, pj_nama: 'Koordinator IPSRS', status: 'disetujui', langkah: [
+          { langkah: 'Menyiapkan dan memasang tangga', uraian_bahaya: 'Tangga tergelincir di lantai licin', bahaya: ['ketinggian', 'licin'], dampak: 4, kemungkinan: 3, kontrol_ada: 'Tangga lipat', kontrol: { rekayasa: 'Tangga berkaki karet antislip', administratif: 'Barikade area dan rekan memegangi tangga', apd: 'Helm dan sepatu antislip' } },
+          { langkah: 'Melepas dan memasang lampu', uraian_bahaya: 'Tersengat listrik, terjatuh', bahaya: ['listrik', 'ketinggian'], dampak: 4, kemungkinan: 2, kontrol_ada: '', kontrol: { eliminasi: 'Matikan MCB jalur lampu', administratif: 'LOTO pada MCB', apd: 'Sarung tangan isolasi' } }] },
+        { pekerjaan: 'Perbaikan talang atap gedung B', unit_id: 12, lokasi: 'Atap gedung B', luar_ruangan: true, pj_nama: 'Koordinator IPSRS', status: 'draf', langkah: [
+          { langkah: 'Naik ke atap', uraian_bahaya: 'Jatuh dari ketinggian, atap licin saat hujan', bahaya: ['ketinggian', 'licin'], dampak: 5, kemungkinan: 3, kontrol_ada: 'Tangga permanen', kontrol: { rekayasa: 'Titik jangkar dan lifeline', administratif: 'Izin kerja ketinggian; tunda saat hujan/angin', apd: 'Full body harness' } }] },
+        { pekerjaan: 'Pembersihan bak kontrol IPAL', unit_id: 13, lokasi: 'IPAL', luar_ruangan: true, pj_nama: 'Sanitarian', status: 'disetujui', langkah: [
+          { langkah: 'Membuka tutup bak kontrol', uraian_bahaya: 'Gas H2S dari ruang terbatas', bahaya: ['ruang_terbatas', 'kimia'], dampak: 5, kemungkinan: 2, kontrol_ada: 'Masker', kontrol: { rekayasa: 'Ventilasi paksa dan detektor gas', administratif: 'Izin ruang terbatas dan penjaga di luar', apd: 'Respirator, harness' } }] }];
+      db.jsa = jsa.map((j, i) => Object.assign({ id: 'contoh-jsa-' + i, nomor: 'JSA-CONTOH-' + (i + 1), tanggal: tambahHari(-i * 2), shift: 'pagi', skor_maks: sk(j.langkah), target_tanggal: tambahHari(5), dibuat_oleh: 'demo-k3rs', dibuat_pada: new Date(kini - i * 2 * 864e5).toISOString() }, j));
+      const DP = window.K3Intel ? window.K3Intel.DAFTAR_PERIKSA : {};
+      const ins = [['umum', 2, 3, [1, 6]], ['kebakaran', 9, 8, [0, 3]], ['listrik', 12, 15, [0, 2, 5]], ['b3', 6, 25, []], ['limbah', 13, 40, [0]], ['umum', 1, 55, [5]]];
+      db.inspeksi = ins.map(([t, u, hr, gagal], i) => { const b = (DP[t] || { butir: [] }).butir; const hasil = b.map(([butir, bh], k) => ({ butir, bahaya: bh, nilai: gagal.includes(k) ? 'tidak' : 'ya', catatan: gagal.includes(k) ? '[CONTOH] perlu perbaikan' : '' }));
+        const nilai = hasil.filter(h => h.nilai !== 'na'); return { id: 'contoh-ins-' + i, nomor: 'INS-CONTOH-' + (i + 1), templat: t, judul: (DP[t] || {}).judul || t, unit_id: u, lokasi: '', tanggal: tambahHari(-hr), shift: 'pagi', hasil,
+          skor_kepatuhan: nilai.length ? Math.round(1000 * nilai.filter(h => h.nilai === 'ya').length / nilai.length) / 10 : null, jumlah_temuan: gagal.length, catatan: '', dibuat_oleh: 'demo-k3rs', dibuat_pada: new Date(kini - hr * 864e5).toISOString() }; });
+      const pm = [['lingkungan', 'kebisingan', 10, 88, 'dBA', null, 85, 4], ['lingkungan', 'kebisingan', 10, 90, 'dBA', null, 85, 35], ['lingkungan', 'pencahayaan', 2, 230, 'lux', 250, null, 6], ['lingkungan', 'suhu_ruang', 5, 24, '°C', 22, 26, 3],
+        ['lingkungan', 'kelembapan', 5, 65, '%', 40, 60, 3], ['lingkungan', 'bod_ipal', 13, 24, 'mg/L', null, 30, 10],
+        ['kesehatan', 'muskuloskeletal', 2, null, 'kasus', null, null, 8, 6, 30], ['kesehatan', 'muskuloskeletal', 2, null, 'kasus', null, null, 40, 3, 30], ['kesehatan', 'tertusuk', 1, null, 'kasus', null, null, 12, 2, 40],
+        ['kesehatan', 'kulit', 10, null, 'kasus', null, null, 20, 3, 12], ['kesehatan', 'pendengaran', 10, null, 'kasus', null, null, 60, 1, 12], ['kesehatan', 'pernapasan', 13, null, 'kasus', null, null, 15, 1, 10]];
+      db.pemantauan = pm.map((m, i) => { const st = m[3] == null ? 'tidak_ada' : (m[6] != null && m[3] > m[6]) ? 'melebihi' : (m[5] != null && m[3] < m[5]) ? 'kurang' : 'normal';
+        return { id: 'contoh-pem-' + i, jenis: m[0], parameter: m[1], unit_id: m[2], lokasi: '', tanggal: tambahHari(-m[7]), shift: 'pagi', nilai: m[3], satuan: m[4], ambang_min: m[5], ambang_maks: m[6], jumlah_kasus: m[8] == null ? null : m[8], jumlah_diperiksa: m[9] == null ? null : m[9], status: st, catatan: '[CONTOH]', dibuat_oleh: 'demo-k3rs', dibuat_pada: new Date(kini - m[7] * 864e5).toISOString() }; });
+      db.dokumen = [
+        { id: 'contoh-dok-1', judul: '[CONTOH] SOP Pekerjaan Listrik', nomor: 'SOP/IPSRS/001', versi: '1', jenis: 'sop', berlaku_mulai: '2024-01-02', status: 'diganti', menggantikan: null, unit_id: null, path: null, nama_berkas: '', mime: '', ukuran: null, metode_ekstraksi: 'manual', dibuat_pada: '2024-01-02T00:00:00Z' },
+        { id: 'contoh-dok-2', judul: '[CONTOH] SOP Pekerjaan Listrik', nomor: 'SOP/IPSRS/001', versi: '2', jenis: 'sop', berlaku_mulai: '2026-01-05', status: 'aktif', menggantikan: 'contoh-dok-1', unit_id: null, path: null, nama_berkas: '', mime: '', ukuran: null, metode_ekstraksi: 'manual', dibuat_pada: '2026-01-05T00:00:00Z' },
+        { id: 'contoh-dok-3', judul: '[CONTOH] SOP Bekerja di Ketinggian', nomor: 'SOP/K3/007', versi: '1', jenis: 'sop', berlaku_mulai: '2025-06-01', status: 'aktif', menggantikan: null, unit_id: null, path: null, nama_berkas: '', mime: '', ukuran: null, metode_ekstraksi: 'manual', dibuat_pada: '2025-06-01T00:00:00Z' }];
+      db.bagian = [
+        { dokumen_id: 'contoh-dok-1', halaman: 1, teks: '[CONTOH] Versi lama. Pekerjaan listrik dilakukan oleh teknisi IPSRS dengan sarung tangan karet.' },
+        { dokumen_id: 'contoh-dok-2', halaman: 1, teks: '[CONTOH] Tujuan: mencegah sengatan listrik dan kebakaran saat pemeliharaan instalasi listrik rumah sakit. Ruang lingkup: seluruh panel, stop kontak, dan genset.' },
+        { dokumen_id: 'contoh-dok-2', halaman: 2, teks: '[CONTOH] Prosedur: 1) Ajukan izin kerja listrik. 2) Matikan sumber listrik dan pasang gembok serta label (LOTO). 3) Uji tidak bertegangan dengan tester. 4) Gunakan sarung tangan isolasi dan sepatu isolasi. 5) Setelah selesai lepas LOTO oleh orang yang sama.' },
+        { dokumen_id: 'contoh-dok-3', halaman: 1, teks: '[CONTOH] Setiap pekerjaan di atas 1,8 meter wajib memakai full body harness yang dikaitkan pada titik jangkar. Area di bawah dibarikade. Pekerjaan di luar ruangan dihentikan saat hujan lebat, angin kencang, atau petir.' }];
+      db.riwayatAI = []; db.bulanan = []; db.v2 = true; simpan();
+    }
+    const MODUL_DEMO = { jsa: 'jsa', inspeksi: 'inspeksi', pemantauan: 'pemantauan' };
+    function bolehBacaModul(t, x) {
+      const p = saya(); if (!p) return false; if (p.peran === 'k3rs') return true;
+      if (t === 'pemantauan') return x.unit_id === p.unit_id && (x.jenis === 'lingkungan' || p.peran === 'pj_unit');
+      return x.unit_id === p.unit_id || x.dibuat_oleh === p.id;
+    }
+    function bolehTulisModul(t, x, lama) {
+      const p = saya(); if (!p) return false; if (p.peran === 'k3rs') return true;
+      if (p.peran !== 'pj_unit' || +x.unit_id !== p.unit_id) return false;
+      if (t === 'jsa') return ['draf', 'selesai'].includes(x.status || 'draf') && (!lama || (lama.dibuat_oleh === p.id && ['draf', 'disetujui'].includes(lama.status)));
+      return !lama || lama.dibuat_oleh === p.id;
+    }
+    function hitungTurunan(t, x) {
+      if (t === 'jsa') x.skor_maks = (x.langkah || []).length ? Math.max(...x.langkah.map(l => (+l.dampak || 1) * (+l.kemungkinan || 1))) : null;
+      if (t === 'inspeksi') { const n = (x.hasil || []).filter(h => h.nilai === 'ya' || h.nilai === 'tidak'); x.jumlah_temuan = (x.hasil || []).filter(h => h.nilai === 'tidak').length; x.skor_kepatuhan = n.length ? Math.round(1000 * n.filter(h => h.nilai === 'ya').length / n.length) / 10 : null; }
+      if (t === 'pemantauan') { const v = x.nilai === '' || x.nilai == null ? null : +x.nilai; x.status = v == null ? 'tidak_ada' : (x.ambang_maks != null && x.ambang_maks !== '' && v > +x.ambang_maks) ? 'melebihi' : (x.ambang_min != null && x.ambang_min !== '' && v < +x.ambang_min) ? 'kurang' : 'normal'; }
+    }
+
     return {
       mode: 'demo',
-      async init() { try { db = JSON.parse(localStorage.getItem(KUNCI) || 'null'); } catch (e) { db = null; } if (!db) benih(); },
+      async init() { try { db = JSON.parse(localStorage.getItem(KUNCI) || 'null'); } catch (e) { db = null; } if (!db) benih(); if (!db.v2) benihV2(); },
       reset() { try { localStorage.removeItem(KUNCI); } catch (e) { /* */ } benih(); },
       akunDemo() { return db.profil.filter(p => p.aktif).map(p => ({ email: p.email, sandi: p.sandi, peran: p.peran })); },
       async masuk(email, sandi) {
@@ -353,7 +477,76 @@
       },
       async simpanKategori(k) { if (!k3rs()) tolak('Hanya K3RS'); Object.assign(db.kategori.find(x => x.kode === k.kode), { nama: k.nama, contoh: k.contoh, aktif: k.aktif }); simpan(); },
       async logAktivitas() { if (!k3rs()) tolak('Hanya K3RS'); return db.log; },
-      async catatEkspor(j) { log('ekspor', 'data', '', j); simpan(); }
+      async catatEkspor(j) { log('ekspor', 'data', '', j); simpan(); },
+
+      // ---------- Modul HSE lanjutan (mode demo; aturan meniru RLS) ----------
+      async daftarModul(t) { if (!MODUL_DEMO[t]) tolak('Modul tidak dikenal'); return (db[t] || []).filter(x => bolehBacaModul(t, x)).slice().sort((a, b) => String(b.dibuat_pada).localeCompare(String(a.dibuat_pada))); },
+      async simpanModul(t, d) {
+        if (!MODUL_DEMO[t]) tolak('Modul tidak dikenal'); const p = saya(); if (!p) tolak('Akun belum aktif');
+        const lama = d.id ? db[t].find(x => x.id === d.id) : null;
+        const x = Object.assign({}, lama || {}, d); x.unit_id = +x.unit_id;
+        if (!bolehTulisModul(t, x, lama)) tolak('Anda tidak berwenang melakukan ini.');
+        hitungTurunan(t, x);
+        if (lama) { Object.assign(lama, x, { dibuat_oleh: lama.dibuat_oleh, nomor: lama.nomor }); log(t + '.update', t, lama.id, ''); }
+        else { x.id = crypto.randomUUID(); x.dibuat_oleh = p.id; x.dibuat_pada = new Date().toISOString(); if (t !== 'pemantauan') x.nomor = t.toUpperCase().slice(0, 3) + '-' + hariIni().slice(2).replace(/-/g, '') + '-' + Math.random().toString(16).slice(2, 7).toUpperCase(); db[t].unshift(x); log(t + '.insert', t, x.id, ''); }
+        simpan(); return lama || x;
+      },
+      async hapusModul(t, id) { if (!k3rs()) tolak('Hanya K3RS'); db[t] = db[t].filter(x => x.id !== id); log(t + '.delete', t, id, ''); simpan(); },
+      async daftarDokumen() { const p = saya(); if (!p) return []; return db.dokumen.filter(d => k3rs() || (d.status !== 'nonaktif' && (!d.unit_id || d.unit_id === p.unit_id))); },
+      async simpanDokumen(meta, bagian, berkas) {
+        if (!k3rs()) tolak('Hanya K3RS yang dapat mengunggah dokumen'); const id = crypto.randomUUID();
+        if (meta.menggantikan) { const l = db.dokumen.find(d => d.id === meta.menggantikan); if (l && l.status === 'aktif') l.status = 'diganti'; }
+        db.dokumen.push(Object.assign({ id, status: 'aktif', path: null, nama_berkas: berkas ? berkas.name : '', mime: berkas ? berkas.type : '', ukuran: berkas ? berkas.size : null, dibuat_pada: new Date().toISOString() }, meta));
+        bagian.forEach(b => db.bagian.push({ dokumen_id: id, halaman: b.halaman, teks: b.teks.slice(0, 20000) }));
+        log('dokumen.insert', 'dokumen', id, meta.judul); simpan(); return id;
+      },
+      async ubahDokumen(id, data) { if (!k3rs()) tolak('Hanya K3RS'); Object.assign(db.dokumen.find(d => d.id === id), data); simpan(); },
+      async isiDokumen(id) { const ok = (await this.daftarDokumen()).some(d => d.id === id); return ok ? db.bagian.filter(b => b.dokumen_id === id).sort((a, b) => a.halaman - b.halaman) : []; },
+      async urlDokumen() { return null; },
+      async cariDokumen(q) {
+        const dok = await this.daftarDokumen(); const kata = String(q || '').toLowerCase().split(/\s+/).filter(w => w.length > 1); if (!kata.length) return [];
+        const out = [];
+        dok.forEach(d => db.bagian.filter(b => b.dokumen_id === d.id).forEach(b => {
+          const t = b.teks.toLowerCase(), cocok = kata.filter(k => t.includes(k) || d.judul.toLowerCase().includes(k) || d.nomor.toLowerCase().includes(k)).length;
+          if (!cocok) return;
+          const i = Math.max(0, t.indexOf(kata.find(k => t.includes(k)) || '') - 60);
+          out.push({ dokumen_id: d.id, judul: d.judul, nomor: d.nomor, versi: d.versi, jenis: d.jenis, status: d.status, berlaku_mulai: d.berlaku_mulai, unit_id: d.unit_id, halaman: b.halaman,
+            cuplikan: (i > 0 ? '… ' : '') + b.teks.slice(i, i + 220).replace(new RegExp('(' + kata.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi'), '«$1»') + ' …', peringkat: cocok / kata.length + (d.status === 'aktif' ? .5 : 0) });
+        }));
+        return out.sort((a, b) => b.peringkat - a.peringkat).slice(0, 30);
+      },
+      async catatRiwayat(r) {
+        const p = saya(); if (!p) tolak('Akun belum aktif');
+        const kini = new Date(); db.riwayatAI = (db.riwayatAI || []).filter(x => new Date(x.kedaluwarsa) > kini);
+        db.riwayatAI.unshift(Object.assign({ id: Date.now(), pengguna_id: p.id, pada: kini.toISOString(), shift: window.K3Intel ? window.K3Intel.shiftSekarang() : null, kedaluwarsa: new Date(kini.getTime() + 60 * 864e5).toISOString() }, r, { kueri: String(r.kueri).slice(0, 300) }));
+        db.riwayatAI = db.riwayatAI.slice(0, 500); simpan();
+      },
+      async daftarRiwayat() { const p = saya(); const kini = new Date(); return (db.riwayatAI || []).filter(x => new Date(x.kedaluwarsa) > kini && (x.pengguna_id === p.id || k3rs())); },
+      async hapusRiwayat(id) { const p = saya(); db.riwayatAI = (db.riwayatAI || []).filter(x => !(x.id === id && x.pengguna_id === p.id)); simpan(); },
+      async ringkasanBulanan(awal) {
+        const p = saya(); if (!p || !['k3rs', 'pj_unit'].includes(p.peran)) tolak('Tidak berwenang');
+        const a = String(awal).slice(0, 7), d0 = new Date(a + '-01T12:00:00Z'); d0.setUTCMonth(d0.getUTCMonth() + 1); const b = d0.toISOString().slice(0, 7);
+        const dalam = t => t && t.slice(0, 7) === a, sebelumAkhir = t => t && t.slice(0, 7) < b;
+        const L = db.laporan.filter(boleh).filter(l => dalam(l.tanggal_lapor)), semua = db.laporan.filter(boleh);
+        const pita = db.pengaturan.pita_risiko.slice().sort((x, y) => x.maks - y.maks);
+        const hit = (arr, f) => arr.reduce((o, x) => { const k = f(x); o[k] = (o[k] || 0) + 1; return o; }, {});
+        const I = db.inspeksi.filter(x => bolehBacaModul('inspeksi', x) && dalam(x.tanggal)), J = db.jsa.filter(x => bolehBacaModul('jsa', x) && dalam(x.tanggal)), M = db.pemantauan.filter(x => bolehBacaModul('pemantauan', x) && dalam(x.tanggal));
+        const ids = new Set(semua.map(l => l.id)), kini = hariIni();
+        return { periode: a, dihitung_pada: new Date().toISOString(), laporan_total: L.length, per_jenis: hit(L, l => l.jenis), per_kategori: hit(L, l => l.kategori_kode),
+          per_unit: hit(L, l => (db.unit.find(u => u.id === l.unit_id) || {}).nama), per_tingkat: hit(L, l => l.skor == null ? 'Belum dinilai' : (pita.find(x => l.skor <= x.maks) || {}).label), mendesak: L.filter(l => l.mendesak).length,
+          capa_tindakan: db.tl.filter(t => ids.has(t.laporan_id) && dalam(t.dibuat_pada)).length, capa_ditutup: semua.filter(l => dalam(l.ditutup_pada)).length,
+          capa_terbuka_akhir_bulan: semua.filter(l => sebelumAkhir(l.tanggal_lapor) && (!l.ditutup_pada || !sebelumAkhir(l.ditutup_pada)) && l.status !== 'tidak_dilanjutkan').length,
+          capa_terlambat: semua.filter(l => l.target_tanggal && l.target_tanggal < (b + '-01' < kini ? b + '-01' : kini) && ['ditugaskan', 'dalam_tindak_lanjut'].includes(l.status)).length,
+          persen_selesai_bulan_ini: L.length ? Math.round(1000 * L.filter(l => l.status === 'tertutup').length / L.length) / 10 : null,
+          inspeksi_jumlah: I.length, inspeksi_temuan: I.reduce((s, x) => s + (x.jumlah_temuan || 0), 0), inspeksi_kepatuhan_rata: I.length ? Math.round(10 * I.reduce((s, x) => s + (+x.skor_kepatuhan || 0), 0) / I.length) / 10 : null,
+          jsa_jumlah: J.length, jsa_risiko_tinggi: J.filter(x => x.skor_maks >= 10).length, pemantauan_jumlah: M.length, pemantauan_melebihi: M.filter(x => ['melebihi', 'kurang'].includes(x.status)).length,
+          keluhan_kesehatan: M.filter(x => x.jenis === 'kesehatan').reduce((s, x) => s + (x.jumlah_kasus || 0), 0) };
+      },
+      async arsipBulanan() { return db.bulanan || []; },
+      async buatLaporanBulanan(awal) { if (!k3rs()) tolak('Hanya K3RS'); const d = await this.ringkasanBulanan(awal); db.bulanan = (db.bulanan || []).filter(x => x.periode !== String(awal).slice(0, 10)); db.bulanan.unshift({ periode: String(awal).slice(0, 10), data: d, dibuat_pada: new Date().toISOString(), dibuat_oleh: saya().id, status: 'selesai' }); simpan(); return d; },
+      async sinkronRingkas() { if (!k3rs()) tolak('Hanya K3RS'); return { token_terpasang: false, per_status: {}, gagal_terakhir: [], log: [], demo: true }; },
+      async sinkronToken() { tolak('Sinkronisasi Google Sheets hanya tersedia di mode Supabase'); },
+      async sinkronUlang() { tolak('Sinkronisasi Google Sheets hanya tersedia di mode Supabase'); }
     };
   }
 
