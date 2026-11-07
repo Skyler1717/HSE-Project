@@ -74,7 +74,22 @@
     pesan: ['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', 'M12 7v4', 'M12 14h.01'],
     petir: ['M13 2 3 14h9l-1 8 10-12h-9z'],
     api: ['M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3.3.4 1.4 1.4 2.8 2.5 2.8z'],
-    sampah: ['M3 6h18', 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6', 'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2', 'M10 11v6', 'M14 11v6']
+    sampah: ['M3 6h18', 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6', 'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2', 'M10 11v6', 'M14 11v6'],
+    cari: ['c11,11,7', 'M21 21l-4.3-4.3'],
+    otak: ['M12 4a3 3 0 0 0-5.8 1A3 3 0 0 0 4 10a3 3 0 0 0 1 5.5A3 3 0 0 0 9 20a3 3 0 0 0 3-1', 'M12 4a3 3 0 0 1 5.8 1A3 3 0 0 1 20 10a3 3 0 0 1-1 5.5A3 3 0 0 1 15 20a3 3 0 0 1-3-1', 'M12 4v15', 'M8 9h1.5', 'M14.5 13H16'],
+    awan: ['M17.5 19H8a6 6 0 1 1 5.7-8h1.8a4.5 4.5 0 1 1 0 9z'],
+    jsa: ['M9 3h6v4H9z', 'M5 5h4', 'M15 5h4v16H5V5', 'M8 12l2 2 4-4', 'M8 17h8'],
+    inspeksi: ['c10,10,6', 'M21 21l-6.5-6.5', 'M7.5 10l2 2 3.5-3.5'],
+    monitor: ['M3 12h4l3-8 4 16 3-8h4'],
+    sop: ['M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z', 'M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5', 'M9 8h7', 'M9 12h5'],
+    bulanan: ['r3,4,18,18,2', 'M16 2v4', 'M8 2v4', 'M3 10h18', 'M8 15h3', 'M8 18h8'],
+    sinkron: ['M21 12a9 9 0 0 1-15.5 6.3L3 16', 'M3 12a9 9 0 0 1 15.5-6.3L21 8', 'M21 3v5h-5', 'M3 21v-5h5'],
+    menu: ['M4 6h16', 'M4 12h16', 'M4 18h16'],
+    palet: ['M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2a2 2 0 0 0-1.5 3.3A2 2 0 0 1 12 22z', 'c7.5,10.5,1', 'c12,7.5,1', 'c16.5,10.5,1'],
+    suara: ['M11 5 6 9H2v6h4l5 4z', 'M15.5 8.5a5 5 0 0 1 0 7', 'M19 5a10 10 0 0 1 0 14'],
+    serah: ['M8 3 4 7l4 4', 'M4 7h16', 'M16 21l4-4-4-4', 'M20 17H4'],
+    piramida: ['M12 3 2 21h20z', 'M6.5 13h11', 'M9 8h6', 'M4.5 17h15'],
+    tangga: ['M7 3v18', 'M17 3v18', 'M7 7h10', 'M7 12h10', 'M7 17h10']
   };
   const NS_SVG = 'http://www.w3.org/2000/svg';
   function ikon(nama, kls) {
@@ -99,6 +114,7 @@
       if (v === null || v === undefined || v === false) continue;
       if (k === 'class') el.className = v;
       else if (k === 'text') el.textContent = v;
+      else if (k === 'style') el.style.cssText = v;   // lewat CSSOM: aman dengan CSP tanpa 'unsafe-inline'
       else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
       else if (k === 'value') el.value = v;
       else if (k === 'checked') el.checked = !!v;
@@ -127,7 +143,9 @@
     const i = p.findIndex(x => skor <= x.maks); if (i < 0) return 'rk-x';
     return 'rk-' + Math.min(3, Math.round(i * 3 / Math.max(1, p.length - 1)));
   };
-  const badgeTingkat = skor => badge(skor == null ? 'Belum dinilai' : 'Risiko ' + tingkat(skor) + ' · ' + skor, kelasTingkat(skor));
+  // Simbol bentuk + teks agar tingkat/status tidak bergantung pada warna saja (ramah buta warna)
+  const SIMBOL_TINGKAT = { 'rk-0': '○', 'rk-1': '△', 'rk-2': '◇', 'rk-3': '✕', 'rk-x': '–' };
+  const badgeTingkat = skor => { const k = kelasTingkat(skor); return badge(SIMBOL_TINGKAT[k] + ' ' + (skor == null ? 'Belum dinilai' : 'Risiko ' + tingkat(skor) + ' · ' + skor), k); };
   const inisial = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase() || '?';
   function kosong(teks) { return h('div', { class: 'kosong-wadah' }, h('div', { class: 'motif-kecil', 'aria-hidden': 'true' }), h('p', { class: 'kosong', text: teks })); }
 
@@ -158,7 +176,8 @@
   }
   function pergi(rute) { if (location.hash === '#' + rute) jalankan(); else location.hash = rute; }
   const badge = (teks, kls) => h('span', { class: 'badge ' + (kls || ''), text: teks });
-  const badgeStatus = s => badge(STATUS[s] || s, 'st-' + s);
+  const SIMBOL_STATUS = { baru: '●', ditugaskan: '→', dalam_tindak_lanjut: '↻', terkendali_sementara: '◇', tertutup: '✓', tidak_dilanjutkan: '–' };
+  const badgeStatus = s => badge((SIMBOL_STATUS[s] || '•') + ' ' + (STATUS[s] || s), 'st-' + s);
   function tombol(teks, aksi, kls, attr) { return h('button', Object.assign({ type: 'button', class: 'btn ' + (kls || ''), onclick: aksi }, attr || {}), teks); }
   async function sibuk(btn, fn) {
     let isiAsli = null;
@@ -233,27 +252,42 @@
       h('h1', { text: judul }),
       h('div', { class: 'bilah-kanan' }, penandaKoneksi(), API.mode === 'demo' ? badge('MODE DEMO', 'demo') : null));
   }
+  // Satu definisi menu untuk sidebar, menu HP, dan halaman Menu (hanya rute yang ada dan diizinkan)
+  function grupMenu() {
+    const p = peran(); if (!p) return [];
+    const staf = p === 'k3rs' || p === 'pj_unit';
+    const g = [
+      [null, [['/beranda', 'beranda', 'Beranda'], ['/intel', 'otak', 'HSE Intelligence'], ['/cari', 'cari', 'Pencarian cerdas']]],
+      ['Operasional K3', [staf ? ['/semua', 'daftar', p === 'k3rs' ? 'Laporan & risk register' : 'Laporan unit'] : null, staf ? ['/tugas', 'tugas', 'Tugas & CAPA'] : null,
+        ['/jsa', 'jsa', 'JSA'], ['/inspeksi', 'inspeksi', 'Inspeksi'], ['/pemantauan', 'monitor', 'Pemantauan K3']]],
+      ['Dokumen & laporan', [['/sop', 'sop', 'SOP & dokumen'], staf ? ['/dasbor', 'grafik', 'Dasbor'] : null, staf ? ['/bulanan', 'bulanan', 'Laporan bulanan'] : null, p === 'pj_unit' ? ['/ekspor', 'unduh', 'Ekspor data'] : null]],
+      ['Laporan saya', [['/laporan-saya', 'dokumen', 'Laporan saya'], ['/lacak', 'kunci', 'Lacak dengan kode'], ['/asisten', 'robot', 'Asisten K3']]],
+      p === 'k3rs' ? ['Administrasi', [['/pengguna', 'orang', 'Pengguna & peran'], ['/pengaturan', 'atur', 'Pengaturan'], ['/sinkron', 'sinkron', 'Google Sheets'], ['/log', 'riwayat', 'Log aktivitas'], ['/admin', 'kisi', 'Semua menu admin']]] : null,
+      ['Lainnya', [['/bantuan', 'bantuan', 'Bantuan'], ['/akun', 'pengguna', 'Akun & tema']]]];
+    return g.filter(Boolean).map(([l, x]) => [l, x.filter(Boolean)]);
+  }
   function navBawah(aktif) {
     const p = peran(); if (!p) return null;
-    const item = { petugas: [['/beranda', 'beranda', 'Beranda'], ['/lapor', 'tambah', 'Lapor'], ['/laporan-saya', 'dokumen', 'Laporan saya'], ['/bantuan', 'bantuan', 'Bantuan'], ['/akun', 'pengguna', 'Akun']],
-      pj_unit: [['/beranda', 'beranda', 'Beranda'], ['/lapor', 'tambah', 'Lapor'], ['/tugas', 'tugas', 'Tugas'], ['/dasbor', 'grafik', 'Dasbor'], ['/akun', 'pengguna', 'Akun']],
-      k3rs: [['/beranda', 'beranda', 'Beranda'], ['/semua', 'daftar', 'Laporan'], ['/dasbor', 'grafik', 'Dasbor'], ['/admin', 'atur', 'Admin'], ['/akun', 'pengguna', 'Akun']] }[p];
-    return h('nav', { class: 'navbawah', 'aria-label': 'Menu utama' }, item.map(([r, i, t]) =>
-      h('a', { href: '#' + r, class: aktif === r ? 'aktif' : '', 'aria-current': aktif === r ? 'page' : null }, ikon(i), h('span', { text: t }))));
+    const item = [['/beranda', 'beranda', 'Beranda'], ['/lapor', 'tambah', 'Lapor'], ['/intel', 'otak', 'Intelijen'], ['/cari', 'cari', 'Cari'], ['/menu', 'menu', 'Menu']];
+    const kini = (location.hash.slice(1) || '/beranda').split('?')[0];
+    const utama = item.map(x => x[0]);
+    return h('nav', { class: 'navbawah', 'aria-label': 'Menu utama' }, item.map(([r, i, t]) => {
+      const on = r === kini || (r === '/menu' && !utama.includes(kini));
+      return h('a', { href: '#' + r, class: on ? 'aktif' : '', 'aria-current': on ? 'page' : null }, ikon(i), h('span', { text: t }));
+    }));
+  }
+  function hMenu() {
+    tampil(halaman('Menu', '/menu', grupMenu().map(([l, x]) => h('section', { class: 'menu-grup' }, l ? h('h2', { class: 'judul-bagian', text: l }) : null,
+      h('div', { class: 'grid-menu' }, x.map(([r, i, t]) => h('a', { class: 'kartu menu', href: '#' + r }, h('span', { class: 'ikon-kotak' }, ikon(i)), h('span', { class: 'teks-menu' }, h('strong', { text: t })), ikon('kanan'))))))));
   }
   // Sidebar desktop: hanya rute yang sudah ada dan diizinkan untuk peran (lihat HAK di bawah)
   function sidebar(aktif) {
     const p = peran(); if (!p) return null;
     const kini = (location.hash.slice(1) || '/beranda').split('?')[0];
-    const tautan = (r, i, t, kls) => { const on = r === kini || (r === aktif && !SIDEBAR_SEMUA().includes(kini)); return h('a', { href: '#' + r, class: 'sb-tautan' + (kls ? ' ' + kls : '') + (on && !kls ? ' aktif' : ''), 'aria-current': on && !kls ? 'page' : null }, ikon(i), h('span', { text: t })); };
+    const semua = grupMenu().flatMap(([, x]) => x.map(y => y[0]));
+    const tautan = (r, i, t, kls) => { const on = r === kini || (r === aktif && !semua.includes(kini)); return h('a', { href: '#' + r, class: 'sb-tautan' + (kls ? ' ' + kls : '') + (on && !kls ? ' aktif' : ''), 'aria-current': on && !kls ? 'page' : null }, ikon(i), h('span', { text: t })); };
     const grup = (label, isi) => h('div', { class: 'sb-grup' }, label ? h('div', { class: 'sb-label', text: label }) : null, isi);
-    const menu = [];
-    menu.push(grup(null, [tautan('/lapor', 'tambah', 'Lapor bahaya', 'lapor'), tautan('/beranda', 'beranda', 'Beranda')]));
-    if (p === 'k3rs') menu.push(grup('Pengelolaan', [tautan('/semua', 'daftar', 'Semua laporan'), tautan('/tugas', 'tugas', 'Tugas saya'), tautan('/dasbor', 'grafik', 'Dasbor')]));
-    if (p === 'pj_unit') menu.push(grup('Unit saya', [tautan('/tugas', 'tugas', 'Tugas saya'), tautan('/semua', 'daftar', 'Laporan unit'), tautan('/dasbor', 'grafik', 'Dasbor'), tautan('/ekspor', 'unduh', 'Ekspor data')]));
-    menu.push(grup('Pelaporan', [tautan('/laporan-saya', 'dokumen', 'Laporan saya'), tautan('/lacak', 'kunci', 'Lacak dengan kode'), tautan('/asisten', 'robot', 'Asisten K3')]));
-    if (p === 'k3rs') menu.push(grup('Administrasi', [tautan('/pengguna', 'orang', 'Pengguna & peran'), tautan('/pengaturan', 'atur', 'Pengaturan'), tautan('/qr', 'qr', 'Kode QR unit'), tautan('/ekspor', 'unduh', 'Ekspor data'), tautan('/log', 'riwayat', 'Log aktivitas'), tautan('/admin', 'kisi', 'Semua menu admin')]));
-    menu.push(grup('Lainnya', [tautan('/bantuan', 'bantuan', 'Bantuan'), tautan('/akun', 'pengguna', 'Akun')]));
+    const menu = [grup(null, [tautan('/lapor', 'tambah', 'Lapor bahaya', 'lapor')])].concat(grupMenu().map(([l, x]) => grup(l, x.map(([r, i, t]) => tautan(r, i, t)))));
     const nama = S.sesi.profil.nama_tampilan;
     return h('aside', { class: 'sidebar', 'aria-label': 'Navigasi samping' },
       h('a', { class: 'sb-merek', href: '#/beranda', 'aria-label': 'HSE Safety First — Beranda' }, kunciMerek('kecil'), h('span', { class: 'sub', text: (S.ref && S.ref.pengaturan.nama_instansi) || 'Sistem K3 rumah sakit' })),
@@ -263,7 +297,6 @@
         h('div', { class: 'info-p' }, h('strong', { text: nama }), h('span', { text: PERAN[p] })),
         h('button', { type: 'button', class: 'sb-keluar', 'aria-label': 'Keluar', title: 'Keluar', onclick: mintaKeluar }, ikon('keluar'))));
   }
-  const SIDEBAR_SEMUA = () => ['/lapor', '/beranda', '/semua', '/tugas', '/dasbor', '/ekspor', '/laporan-saya', '/lacak', '/asisten', '/pengguna', '/pengaturan', '/qr', '/log', '/admin', '/bantuan', '/akun'];
   function halaman(judul, rute, isi, opsi) {
     opsi = opsi || {};
     return [h('div', { class: 'kerangka' }, sidebar(rute),
@@ -271,7 +304,29 @@
       navBawah(rute), tombolAsisten()];
   }
   function peringatanData() {
+    if (API.mode !== 'demo') return null;
     return h('p', { class: 'catatan-data' }, ikon('awas'), h('span', { text: 'Uji coba hanya dengan DATA CONTOH. Data nyata baru boleh dipakai setelah persetujuan etik dan keputusan pengelola data rumah sakit.' }));
+  }
+
+  // ---------- Pilih tema (sebelum masuk; dapat diubah di Akun) ----------
+  const SKEMA = [['bentenan', 'Bentenan Merah & Putih', 'Identitas utama: merah, putih, dan motif tenun Bentenan Sulawesi Utara.'],
+    ['navy', 'Navy & Putih', 'Navy berkelas dengan motif Bentenan; kontras tinggi dan tenang untuk kerja panjang.'],
+    ['aksesibel', 'Aksesibel (ramah buta warna)', 'Kontras tinggi, warna aman untuk buta warna, setiap status punya ikon, label, dan pola.']];
+  function pratinjauSkema(id) {
+    return h('div', { class: 'pratinjau-skema', 'data-skema-pratinjau': id, 'aria-hidden': 'true' },
+      h('div', { class: 'ps-panel' }, kunciMerek('kecil')),
+      h('div', { class: 'ps-isi' }, h('span', { class: 'ps-tombol' }), h('span', { class: 'ps-baris' }), h('span', { class: 'ps-baris pendek' }),
+        h('span', { class: 'ps-lencana' }, h('span', { class: 'badge rk-3', text: '✕ Sangat tinggi' }), h('span', { class: 'badge rk-0', text: '○ Rendah' }))));
+  }
+  function hTema(sebelumMasuk) {
+    let pilihan = LS.get('k3_skema', 'bentenan');
+    const kartu = SKEMA.map(([id, judul, ket]) => h('button', { type: 'button', class: 'kartu skema-pilih' + (pilihan === id ? ' dipilih' : ''), role: 'radio', 'aria-checked': String(pilihan === id), 'data-skema-id': id,
+      onclick: () => { pilihan = id; LS.set('k3_skema', id); terapkanTema(); kartu.forEach(k => { const on = k.getAttribute('data-skema-id') === id; k.classList.toggle('dipilih', on); k.setAttribute('aria-checked', String(on)); }); } },
+      pratinjauSkema(id), h('strong', { text: judul }), h('small', { text: ket })));
+    const isi = [h('div', { class: 'tema-kepala' }, kunciMerek('masuk-logo'), h('h1', { text: 'Pilih tampilan' }), h('p', { text: 'Tema dapat diganti kapan saja melalui menu Akun.' })),
+      h('div', { class: 'skema-grid', role: 'radiogroup', 'aria-label': 'Tema tampilan' }, kartu),
+      h('div', { class: 'tombol-baris tengah' }, tombol([ikon('kanan'), sebelumMasuk ? 'Lanjut ke halaman masuk' : 'Simpan tema'], () => { LS.set('k3_skema', pilihan); terapkanTema(); if (sebelumMasuk) { LS.set('k3_skema_dipilih', true); jalankan(); } else { toast('Tema disimpan', 'ok'); pergi('/akun'); } }, 'utama besar'))];
+    tampil(sebelumMasuk ? h('main', { class: 'tema-layar', id: 'konten' }, isi) : halaman('Tema tampilan', '/akun', isi, { kembali: true }));
   }
 
   // ---------- Masuk ----------
@@ -298,7 +353,7 @@
           h('li', {}, ikon('tugas'), h('span', { text: 'Setiap laporan punya satu penanggung jawab dan tanggal target.' })),
           h('li', {}, ikon('gembok'), h('span', { text: 'Teks yang memuat identitas pasien ditolak otomatis.' }))),
         h('p', { class: 'asal', text: 'Motif aksen terinspirasi kain tenun Bentenan, Sulawesi Utara.' })),
-      h('main', { class: 'masuk-form', id: 'konten' }, form, demo, peringatanData())));
+      h('main', { class: 'masuk-form', id: 'konten' }, form, demo, peringatanData(), h('button', { type: 'button', class: 'btn teks ganti-tema', onclick: () => hTema(true) }, ikon('palet'), 'Ganti tema tampilan'))));
   }
 
   // ---------- MFA (khusus K3RS) ----------
@@ -737,7 +792,7 @@
   // ---------- Admin ----------
   function hAdmin() {
     const m = [['/pengguna', 'orang', 'Pengguna & peran', 'Aktifkan akun, atur peran dan unit'], ['/pengaturan', 'atur', 'Pengaturan, unit, kategori', 'Instansi, pita risiko, MFA'], ['/qr', 'qr', 'Cetak kode QR unit', 'Tempel di dinding unit'], ['/ekspor', 'unduh', 'Ekspor CSV & cadangan', 'Laporan, tindak lanjut, log'],
-      ['/log', 'riwayat', 'Log aktivitas', 'Siapa, kapan, apa'], ['/riset', 'mik', 'Bahan wawancara pra–pasca (Lampiran D)', 'Pedoman wawancara'], ['/paket', 'paket', 'Paket replikasi (8 komponen)', 'Ketersediaan berkas'], ['/bantuan', 'bantuan', 'Bantuan & peta hambatan', 'Cara pakai dan batas klaim']];
+      ['/log', 'riwayat', 'Log aktivitas', 'Siapa, kapan, apa'], ['/sinkron', 'sinkron', 'Google Sheets', 'Status sinkronisasi & laporan'], ['/sop', 'sop', 'Dokumen & SOP', 'Unggah dan kelola versi'], ['/bantuan', 'bantuan', 'Bantuan', 'Cara pakai dan arti status']];
     tampil(halaman('Admin K3RS', '/admin', h('div', { class: 'grid-menu admin-grid' }, m.map(([r, i, t, k]) => h('a', { class: 'kartu menu', href: '#' + r }, h('span', { class: 'ikon-kotak' }, ikon(i)), h('span', { class: 'teks-menu' }, h('strong', { text: t }), h('small', { text: k })), ikon('kanan'))))));
   }
 
@@ -803,7 +858,7 @@
   }
 
   // ---------- Ekspor ----------
-  const VERSI = '1.1.0';
+  const VERSI = '2.0.0';
   function sel(v) { let s = v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function keCSV(baris, kolom) { return '﻿' + [kolom.map(k => sel(k[1])).join(',')].concat(baris.map(r => kolom.map(k => sel(typeof k[0] === 'function' ? k[0](r) : r[k[0]])).join(','))).join('\r\n'); }
   function unduh(nama, isi, tipe) { const b = new Blob([isi], { type: tipe || 'text/csv;charset=utf-8' }); const a = h('a', { href: URL.createObjectURL(b), download: nama }); document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
@@ -840,47 +895,8 @@
         : kosong('Belum ada aktivitas tercatat.')], { kembali: true }));
   }
 
-  // ---------- Bahan riset (Lampiran D) ----------
-  function hRiset() {
-    const Q = [
-      ['Alur kerja K3 di unit', 'Bagaimana Bapak/Ibu biasanya menangani sebuah bahaya di unit, mulai dari bahaya itu dicatat sampai dinyatakan selesai?', 'Bagaimana Bapak/Ibu menangani sebuah bahaya di unit dengan aplikasi, mulai dari bahaya itu dicatat sampai dinyatakan selesai?', 'Siapa saja yang terlibat pada setiap langkah itu? · Pada langkah mana penanganan biasanya berhenti atau tertunda?'],
-      ['Hambatan pelaporan dan penanganan', 'Apa saja yang membuat Bapak/Ibu atau rekan kerja sulit melaporkan atau menindaklanjuti sebuah bahaya saat ini?', 'Sesudah memakai aplikasi, apa saja yang membuat Bapak/Ibu atau rekan kerja sulit melaporkan atau menindaklanjuti sebuah bahaya?', 'Bisakah Bapak/Ibu menceritakan satu kejadian yang menggambarkan hal itu? · Apa yang Bapak/Ibu lakukan saat menghadapinya?'],
-      ['Kejelasan langkah dan fitur', 'Bagian mana dari cara pencatatan bahaya yang dipakai sekarang yang menurut Bapak/Ibu jelas, dan bagian mana yang tidak jelas?', 'Bagian mana dari aplikasi yang menurut Bapak/Ibu jelas, dan bagian mana yang tidak jelas?', 'Apa yang Bapak/Ibu pahami dari bagian itu? · Informasi apa yang Bapak/Ibu cari tetapi tidak ditemukan?'],
-      ['Kecocokan dengan sumber daya dan kebiasaan', 'Bagaimana cara pencatatan bahaya yang dipakai sekarang berjalan dengan waktu, tenaga, dan perangkat yang tersedia di unit?', 'Bagaimana aplikasi berjalan dengan waktu, tenaga, dan perangkat yang tersedia di unit?', 'Pada situasi kerja seperti apa hal itu paling terasa? · Kebiasaan kerja apa yang berubah dan apa yang tetap sama?'],
-      ['Hal yang perlu diperbaiki', 'Bila cara penanganan bahaya di unit dapat diubah, apa yang menurut Bapak/Ibu perlu diubah?', 'Bila aplikasi dapat diubah, apa yang menurut Bapak/Ibu perlu diubah?', 'Mengapa hal itu penting bagi Bapak/Ibu? · Siapa yang paling merasakan perubahan itu?']];
-    tampil(halaman('Bahan wawancara pra–pasca', '/admin', [
-      h('p', { class: 'catatan-batas', text: '[PROTOKOL/RANCANGAN — instrumen penelitian lanjutan] Pedoman ini disalin dari Lampiran D draf. Wawancara hanya boleh dilakukan setelah persetujuan etik dan lembar persetujuan (Lampiran C). Jawaban wawancara TIDAK disimpan di aplikasi ini (minimisasi data); catat di formulir D.3 yang disimpan peneliti.' }),
-      h('div', { class: 'kartu' }, h('h2', { text: 'Pembukaan (dibacakan)' }), h('p', { text: '“Terima kasih atas kesediaan Bapak/Ibu. Wawancara ini membahas cara bahaya di unit dicatat dan ditangani. Tidak ada jawaban benar atau salah. Bapak/Ibu boleh tidak menjawab atau berhenti kapan saja. Apakah Bapak/Ibu mengizinkan percakapan ini direkam?”' })),
-      Q.map((q, i) => h('div', { class: 'kartu' }, h('h3', { text: (i + 1) + '. ' + q[0] }), h('p', {}, h('strong', { text: 'PRE: ' }), q[1]), h('p', {}, h('strong', { text: 'POST: ' }), q[2]), h('p', { class: 'kecil' }, h('strong', { text: 'Probe: ' }), q[3]))),
-      h('div', { class: 'kartu' }, h('h2', { text: 'Penutup (dibacakan)' }), h('p', { text: '“Apakah ada hal lain tentang penanganan bahaya di unit yang ingin Bapak/Ibu sampaikan? Terima kasih. Rekaman dan catatan akan dirahasiakan sebagaimana dijelaskan pada lembar informasi.”' })),
-      tombol([ikon('unduh'), 'Unduh formulir kosong D.3 (CSV)'], () => unduh('formulir-D3-catatan-jawaban.csv', keCSV([], [['a', 'Kode partisipan'], ['b', 'Tanggal'], ['c', 'Sesi (PRE/POST)'], ['d', 'No pertanyaan'], ['e', 'Kutipan (verbatim)'], ['f', 'Kode tema']])), 'kedua')], { kembali: true }));
-  }
-
-  function hPaket() {
-    const K = [
-      ['Spesifikasi fungsional', 'Dokumen BRD & SRS (docs/) — tersedia'],
-      ['Model data dan aturan status', 'supabase/01_setup.sql (tabel, pemicu aturan D2–D4) — tersedia'],
-      ['Konfigurasi dan versi platform', 'config.js, Pengaturan → Unduh konfigurasi.json, versi aplikasi ' + VERSI + ' — tersedia'],
-      ['Kodebook dan register', '[PERLU ISI oleh peneliti] — di luar aplikasi'],
-      ['Protokol evaluasi', '[PERLU ISI oleh peneliti — ambang dikunci di G1]'],
-      ['Rubrik kesamaan konteks', '[PERLU ISI oleh peneliti — empat kriteria konteks]'],
-      ['Panduan adaptasi', 'Panduan_Membuat_Aplikasi_K3.docx + README — tersedia'],
-      ['Pernyataan batas klaim dan ketentuan penggunaan', 'Menu Bantuan → Batas klaim; README — tersedia']];
-    tampil(halaman('Paket replikasi', '/admin', [h('p', { class: 'kecil', text: 'Delapan komponen paket replikasi menurut draf (Bab III, kriteria K5). Status di bawah hanya menunjukkan ketersediaan berkas, bukan penilaian K5.' }),
-      h('ol', { class: 'paket' }, K.map(([a, b]) => h('li', {}, h('strong', { text: a }), h('div', { class: 'kecil', text: b }))))], { kembali: true }));
-  }
-
   // ---------- Bantuan ----------
   function hBantuan() {
-    const peta = [
-      ['Takut disalahkan / identitas terbuka', 'D1', 'Lapor tanpa nama + kode lacak; nama pelapor disembunyikan dari PJ unit; foto dimatikan pada laporan anonim'],
-      ['Tidak tahu cara/tempat melapor', 'D1', '3 ketukan; kode QR per unit; 8 jenis bahaya bergambar; asisten tanya-jawab'],
-      ['Formulir rumit, tidak ada waktu', 'D1', 'Isian opsional; dikte suara; simpan draf otomatis; antrean saat sinyal lemah'],
-      ['Umpan balik lambat/tidak ada', 'D2, D3', 'Status dan riwayat terlihat oleh pelapor (juga lewat kode lacak); pemberitahuan kabar baru di beranda'],
-      ['Tidak jelas siapa yang menangani', 'D2', 'Satu penanggung jawab wajib sebelum ditangani; tanggal target wajib'],
-      ['Penanganan berhenti di tengah', 'D3', 'Dasbor titik putus (a)–(d); pengingat tugas terlambat; eskalasi laporan baru'],
-      ['Penutupan hanya di atas kertas (APD/aturan)', 'D4', 'Status tertutup hanya untuk eliminasi/substitusi/rekayasa dengan bukti; APD/administratif = terkendali sementara'],
-      ['Sulit diterapkan di rumah sakit lain', 'D5', 'Unit, jenis bahaya, dan pita risiko dapat diatur; konfigurasi dapat diunduh; paket replikasi 8 komponen']];
     tampil(halaman('Bantuan', '/bantuan', [
       h('div', { class: 'kartu' }, h('h2', { text: 'Cara melapor' }), h('ol', {}, h('li', { text: 'Tekan LAPOR BAHAYA.' }), h('li', { text: 'Ketuk gambar jenis bahaya.' }), h('li', { text: 'Tekan KIRIM.' })),
         h('p', { class: 'kecil', text: 'Tambahan opsional: cerita singkat (bisa dengan suara), lokasi, foto, tanda mendesak, kirim tanpa nama.' })),
@@ -890,9 +906,7 @@
         h('li', { text: 'Laporan dengan nama: nama hanya dapat dibuka K3RS dan setiap pembukaan tercatat di log.' }),
         h('li', { text: 'Laporan tanpa nama: nama tidak disimpan; waktu lapor hanya dicatat tanggalnya.' }),
         h('li', { text: 'Data dipakai untuk memperbaiki kondisi kerja, bukan untuk menghukum.' }))),
-      h('div', { class: 'kartu' }, h('h2', { text: 'Peta hambatan → prinsip desain → fitur' }), h('p', { class: 'kecil', text: 'Hambatan diambil dari pustaka pada draf (bukan dari wawancara; E3 dijeda). Prinsip D1–D5 berstatus hipotesis desain.' }),
-        h('div', { class: 'tabel-gulir' }, h('table', { class: 'tabel tumpuk' }, h('thead', {}, h('tr', {}, h('th', { scope: 'col', text: 'Hambatan' }), h('th', { scope: 'col', text: 'Prinsip' }), h('th', { scope: 'col', text: 'Fitur' }))), h('tbody', {}, peta.map(r => h('tr', {}, r.map((c, i) => h('td', { 'data-label': ['Hambatan', 'Prinsip', 'Fitur'][i], text: c })))))))),
-      h('div', { class: 'kartu' }, h('h2', { text: 'Batas klaim' }), h('p', { text: 'Aplikasi ini adalah komponen operasional rancangan sistem K3 empat tahap pada satu rumah sakit. Aplikasi tidak diklaim mengubah angka kecelakaan, tidak diklaim berhasil di rumah sakit lain, dan belum diaudit keamanan secara independen. Uji coba memakai data contoh.' })),
+      h('div', { class: 'kartu' }, h('h2', { text: 'Tentang HSE Intelligence' }), h('p', { text: 'Analisis, peringatan, dan rekomendasi dihitung dari data yang tercatat di aplikasi dengan aturan K3 dan statistik sederhana. Hasilnya adalah bahan pertimbangan, bukan keputusan: persetujuan, penutupan temuan, dan penghentian pekerjaan tetap dilakukan petugas berwenang.' })),
       h('p', { class: 'kecil', text: 'Versi aplikasi ' + VERSI + ' · mode ' + API.mode })]));
   }
 
@@ -957,14 +971,23 @@
         if (!(s1.value.length >= 10 && /[a-z]/.test(s1.value) && /[A-Z]/.test(s1.value) && /\d/.test(s1.value))) return toast('Minimal 10 karakter dengan huruf besar, huruf kecil, dan angka', 'galat');
         await sibuk(b2, async () => { await API.gantiSandi(s1.value); s1.value = s2.value = ''; toast('Kata sandi diganti', 'ok'); }).catch(() => {});
       } }, bidang('Kata sandi baru', s1, 'Minimal 10 karakter: huruf besar, huruf kecil, angka.'), bidang('Ulangi kata sandi baru', s2), b2),
-      h('div', { class: 'kartu' }, bidang('Tampilan', pilih([['otomatis', 'Ikuti HP'], ['terang', 'Terang'], ['gelap', 'Gelap']], tema, { onchange: e => { LS.set('k3_tema', e.target.value); terapkanTema(); } })),
+      h('div', { class: 'kartu' }, h('div', { class: 'kartu-kepala' }, h('h2', { text: 'Tema & tampilan' }), ikon('palet')),
+        h('div', { class: 'dua' }, bidang('Tema warna', pilih(SKEMA.map(x => [x[0], x[1]]), LS.get('k3_skema', 'bentenan'), { onchange: e => { LS.set('k3_skema', e.target.value); terapkanTema(); } })),
+          bidang('Terang / gelap', pilih([['otomatis', 'Ikuti HP'], ['terang', 'Terang'], ['gelap', 'Gelap']], tema, { onchange: e => { LS.set('k3_tema', e.target.value); terapkanTema(); } }))),
+        h('a', { class: 'btn kedua', href: '#/tema' }, ikon('palet'), 'Lihat pratinjau tema'),
+        h('a', { class: 'btn kedua', href: '#/uji-warna' }, ikon('mata'), 'Uji tampilan buta warna'),
+        h('label', { class: 'saklar' }, h('input', { type: 'checkbox', checked: LS.get('k3_suara', false), onchange: e => LS.set('k3_suara', e.target.checked) }), h('span', { text: 'Panduan suara (bacakan peringatan dan langkah inspeksi)' })),
         tombol([ikon('hapus'), 'Hapus data aplikasi di HP ini (draf, antrean, kode)'], async () => { if (!await konfirmasi('Hapus data di HP ini?', 'Draf, antrean yang belum terkirim, dan kode lacak yang tersimpan di HP ini akan dihapus. Laporan yang sudah terkirim tidak terpengaruh.', 'Hapus', true)) return; [KUNCI_DRAF, KUNCI_ANTREAN, 'k3_kode_saya', 'k3_dilihat', 'k3_unit_terakhir'].forEach(LS.del); toast('Data lokal dihapus', 'ok'); }, 'teks')),
       tombol([ikon('keluar'), 'KELUAR'], mintaKeluar, 'bahaya besar')], { sempit: true }));
   }
   async function keluar() { await API.keluar(); S.sesi = null; S.cacheLaporan = null; pergi('/masuk'); }
   async function mintaKeluar() { if (await konfirmasi('Keluar dari aplikasi?', 'Anda perlu masuk lagi untuk melapor atau melihat laporan. Antrean yang belum terkirim tetap tersimpan di HP ini.', 'Keluar')) keluar(); }
 
-  function terapkanTema() { const t = LS.get('k3_tema', 'otomatis'); if (t === 'otomatis') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t === 'gelap' ? 'dark' : 'light'); }
+  function terapkanTema() {
+    const t = LS.get('k3_tema', 'otomatis'); if (t === 'otomatis') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t === 'gelap' ? 'dark' : 'light');
+    const sk = LS.get('k3_skema', 'bentenan'); document.documentElement.setAttribute('data-skema', ['bentenan', 'navy', 'aksesibel'].includes(sk) ? sk : 'bentenan');
+    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', sk === 'navy' ? '#1B2A44' : sk === 'aksesibel' ? '#0B3D91' : '#B8202E');
+  }
 
   // ---------- Sesi & rute ----------
   async function muatRef() { S.ref = await API.referensi(); }
@@ -973,16 +996,16 @@
   const RUTE = {
     '/beranda': hBeranda, '/lapor': hLapor, '/laporan-saya': hLaporanSaya, '/lacak': hLacak, '/bantuan': hBantuan, '/akun': hAkun, '/asisten': hAsisten,
     '/tugas': () => hDaftarSemua('/tugas', 'Tugas saya'), '/semua': () => hDaftarSemua('/semua', peran() === 'k3rs' ? 'Semua laporan' : 'Laporan unit'),
-    '/dasbor': hDasbor, '/admin': hAdmin, '/pengguna': hPengguna, '/pengaturan': hPengaturan, '/qr': hQR, '/ekspor': hEkspor, '/log': hLog, '/riset': hRiset, '/paket': hPaket, '/mfa': hMfa
+    '/dasbor': hDasbor, '/admin': hAdmin, '/pengguna': hPengguna, '/pengaturan': hPengaturan, '/qr': hQR, '/ekspor': hEkspor, '/log': hLog, '/mfa': hMfa, '/menu': hMenu, '/tema': () => hTema(false)
   };
-  const HAK = { '/tugas': ['pj_unit', 'k3rs'], '/semua': ['pj_unit', 'k3rs'], '/dasbor': ['pj_unit', 'k3rs'], '/ekspor': ['pj_unit', 'k3rs'], '/admin': ['k3rs'], '/pengguna': ['k3rs'], '/pengaturan': ['k3rs'], '/qr': ['k3rs'], '/log': ['k3rs'], '/riset': ['k3rs'], '/paket': ['k3rs'] };
+  const HAK = { '/tugas': ['pj_unit', 'k3rs'], '/semua': ['pj_unit', 'k3rs'], '/dasbor': ['pj_unit', 'k3rs'], '/ekspor': ['pj_unit', 'k3rs'], '/admin': ['k3rs'], '/pengguna': ['k3rs'], '/pengaturan': ['k3rs'], '/qr': ['k3rs'], '/log': ['k3rs'] };
 
   async function jalankan() {
     const hash = location.hash.slice(1) || '/beranda';
     const rute = hash.split('?')[0];
     document.body.classList.add('sedang-memuat');
     try {
-      if (!S.sesi) { if (rute !== '/masuk') SS.set('k3_tujuan', hash); return hMasuk(); }
+      if (!S.sesi) { if (rute !== '/masuk') SS.set('k3_tujuan', hash); if (!LS.get('k3_skema_dipilih', false)) return hTema(true); return hMasuk(); }
       if (!S.sesi.profil || !S.sesi.profil.aktif) {
         return tampil(bilahAtas('Menunggu persetujuan'), h('main', { class: 'isi sempit', id: 'konten' }, h('div', { class: 'kartu sukses' }, h('div', { class: 'besar-ikon tunda', 'aria-hidden': 'true' }, ikon('jam')), h('h2', { text: 'Akun belum aktif' }), h('p', { text: 'Akun Anda (' + S.sesi.email + ') sudah terdaftar tetapi belum diaktifkan oleh admin K3RS. Silakan hubungi admin, lalu masuk kembali.' }), tombol([ikon('keluar'), 'Keluar'], keluar, 'kedua'))));
       }
@@ -998,6 +1021,10 @@
     } finally { document.body.classList.remove('sedang-memuat'); }
   }
 
+  // Alat bantu untuk modul halaman tambahan (js/modul.js)
+  window.K3App = { S, API, h, ikon, IK, badge, badgeStatus, badgeTingkat, tombol, sibuk, bidang, pilih, toast, konfirmasi, tampil, halaman, kosong, pergi, peran, namaUnit, kat, ikonKat, tingkat, kelasTingkat,
+    tgl, LS, SS, PERAN, JENIS, STATUS, LEVEL, ambilLaporan, unduh, keCSV, KUNCI_DRAF, kunciMerek, lambang, terapkanTema, RUTE, HAK, jalankan, inisial };
+
   async function mulai() {
     terapkanTema();
     const q = new URLSearchParams(location.search); const u = q.get('unit');
@@ -1009,5 +1036,6 @@
     kirimAntrean();
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
-  mulai();
+  // Mulai setelah semua skrip (termasuk js/modul.js) selesai dimuat
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mulai); else setTimeout(mulai, 0);
 })();
