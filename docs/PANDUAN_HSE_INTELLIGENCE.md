@@ -10,7 +10,8 @@ Tidak ada OpenAI atau API berbayar.
 2. Supabase → **Database → Extensions**: aktifkan **pg_cron** (untuk laporan bulanan otomatis dan hapus riwayat 60 hari).
 3. Supabase → **SQL Editor** → tempel seluruh isi `supabase/20_modul_hse.sql` → **Run**.
    Hasil benar: *Success*. Bila muncul NOTICE "pg_cron belum dapat diaktifkan", aktifkan pg_cron lalu jalankan ulang berkas yang sama (aman diulang).
-4. Periksa: `select jobname, schedule from cron.job;` → harus ada `hse-laporan-bulanan` dan `hse-hapus-riwayat-ai`.
+4. Jalankan juga `supabase/21_jejak_dan_dokumen.sql` (jejak perubahan + metadata dokumen; aman diulang; rollback `29b_…`).
+5. Periksa: `select jobname, schedule from cron.job;` → harus ada `hse-laporan-bulanan` dan `hse-hapus-riwayat-ai`.
 
 Sebelum langkah ini dijalankan, aplikasi tetap berfungsi. Menu JSA, Inspeksi, Pemantauan, dan SOP menampilkan pesan "Modul belum diaktifkan".
 

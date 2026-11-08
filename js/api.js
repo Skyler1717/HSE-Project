@@ -143,7 +143,7 @@
         } catch (e) { throw terjemahGalat(e); }
       },
       async hapusModul(tabel, id) { if (!MODUL.includes(tabel)) throw new Error('Modul tidak dikenal'); try { cek(await sb.from(tabel).delete().eq('id', id)); } catch (e) { throw terjemahGalat(e); } },
-      async daftarDokumen() { try { return cek(await sb.from('dokumen').select('id,judul,nomor,versi,jenis,berlaku_mulai,status,menggantikan,unit_id,path,nama_berkas,mime,ukuran,metode_ekstraksi,dibuat_pada').order('judul').limit(1000)); } catch (e) { throw terjemahGalat(e); } },
+      async daftarDokumen() { try { return cek(await sb.from('dokumen').select('*').order('judul').limit(1000)); } catch (e) { throw terjemahGalat(e); } },
       async simpanDokumen(meta, bagian, berkas) {
         const id = crypto.randomUUID(); let path = null;
         try {
@@ -163,6 +163,10 @@
       ringkasanBulanan: awal => panggil('ringkasan_bulanan', { p_awal: awal }),
       async arsipBulanan() { try { return cek(await sb.from('laporan_bulanan').select('*').order('periode', { ascending: false }).limit(36)); } catch (e) { throw terjemahGalat(e); } },
       buatLaporanBulanan: (awal, paksa) => panggil('buat_laporan_bulanan', { p_awal: awal, p_paksa: !!paksa }),
+      async jejak(tabel, id) {
+        try { return cek(await sb.from('jejak_perubahan').select('pada,aktor,aksi,sebelum,sesudah').eq('tabel', tabel).eq('rec_id', String(id)).order('pada', { ascending: false }).limit(100)); }
+        catch (e) { const g = terjemahGalat(e); if (g.belumSiap) return null; throw g; }
+      },
       sinkronRingkas: () => panggil('sinkron_ringkas'),
       sinkronToken: t => panggil('sinkron_atur_token', { p_token: t }),
       sinkronUlang: (tabel, gagal) => panggil('sinkron_antre_ulang', { p_tabel: tabel || null, p_hanya_gagal: !!gagal })
@@ -306,8 +310,8 @@
         return { id: 'contoh-pem-' + i, jenis: m[0], parameter: m[1], unit_id: m[2], lokasi: '', tanggal: tambahHari(-m[7]), shift: 'pagi', nilai: m[3], satuan: m[4], ambang_min: m[5], ambang_maks: m[6], jumlah_kasus: m[8] == null ? null : m[8], jumlah_diperiksa: m[9] == null ? null : m[9], status: st, catatan: '[CONTOH]', dibuat_oleh: 'demo-k3rs', dibuat_pada: new Date(kini - m[7] * 864e5).toISOString() }; });
       db.dokumen = [
         { id: 'contoh-dok-1', judul: '[CONTOH] SOP Pekerjaan Listrik', nomor: 'SOP/IPSRS/001', versi: '1', jenis: 'sop', berlaku_mulai: '2024-01-02', status: 'diganti', menggantikan: null, unit_id: null, path: null, nama_berkas: '', mime: '', ukuran: null, metode_ekstraksi: 'manual', dibuat_pada: '2024-01-02T00:00:00Z' },
-        { id: 'contoh-dok-2', judul: '[CONTOH] SOP Pekerjaan Listrik', nomor: 'SOP/IPSRS/001', versi: '2', jenis: 'sop', berlaku_mulai: '2026-01-05', status: 'aktif', menggantikan: 'contoh-dok-1', unit_id: null, path: null, nama_berkas: '', mime: '', ukuran: null, metode_ekstraksi: 'manual', dibuat_pada: '2026-01-05T00:00:00Z' },
-        { id: 'contoh-dok-3', judul: '[CONTOH] SOP Bekerja di Ketinggian', nomor: 'SOP/K3/007', versi: '1', jenis: 'sop', berlaku_mulai: '2025-06-01', status: 'aktif', menggantikan: null, unit_id: null, path: null, nama_berkas: '', mime: '', ukuran: null, metode_ekstraksi: 'manual', dibuat_pada: '2025-06-01T00:00:00Z' }];
+        { id: 'contoh-dok-2', judul: '[CONTOH] SOP Pekerjaan Listrik', nomor: 'SOP/IPSRS/001', versi: '2', jenis: 'sop', berlaku_mulai: '2026-01-05', status: 'aktif', menggantikan: 'contoh-dok-1', unit_id: null, path: null, nama_berkas: '', mime: '', ukuran: null, metode_ekstraksi: 'manual', dibuat_pada: '2026-01-05T00:00:00Z', pemilik: 'Koordinator IPSRS', tanggal_tinjau: '2028-01-05', catatan_revisi: 'Menambahkan prosedur LOTO dan uji tidak bertegangan' },
+        { id: 'contoh-dok-3', judul: '[CONTOH] SOP Bekerja di Ketinggian', nomor: 'SOP/K3/007', versi: '1', jenis: 'sop', berlaku_mulai: '2025-06-01', status: 'aktif', menggantikan: null, unit_id: null, path: null, nama_berkas: '', mime: '', ukuran: null, metode_ekstraksi: 'manual', dibuat_pada: '2025-06-01T00:00:00Z', pemilik: 'Komite K3RS', tanggal_tinjau: tambahHari(-5), catatan_revisi: '' }];
       db.bagian = [
         { dokumen_id: 'contoh-dok-1', halaman: 1, teks: '[CONTOH] Versi lama. Pekerjaan listrik dilakukan oleh teknisi IPSRS dengan sarung tangan karet.' },
         { dokumen_id: 'contoh-dok-2', halaman: 1, teks: '[CONTOH] Tujuan: mencegah sengatan listrik dan kebakaran saat pemeliharaan instalasi listrik rumah sakit. Ruang lingkup: seluruh panel, stop kontak, dan genset.' },
@@ -487,7 +491,11 @@
         const x = Object.assign({}, lama || {}, d); x.unit_id = +x.unit_id;
         if (!bolehTulisModul(t, x, lama)) tolak('Anda tidak berwenang melakukan ini.');
         hitungTurunan(t, x);
-        if (lama) { Object.assign(lama, x, { dibuat_oleh: lama.dibuat_oleh, nomor: lama.nomor }); log(t + '.update', t, lama.id, ''); }
+        if (lama) {
+          const sebelum = {}, sesudah = {}; Object.keys(x).forEach(k => { if (JSON.stringify(lama[k]) !== JSON.stringify(x[k]) && !['dibuat_oleh', 'nomor'].includes(k)) { sebelum[k] = lama[k] === undefined ? null : lama[k]; sesudah[k] = x[k]; } });
+          if (Object.keys(sesudah).length) (db.jejak = db.jejak || []).unshift({ tabel: t, rec_id: lama.id, pada: new Date().toISOString(), aktor: p.id, aksi: 'ubah', sebelum, sesudah });
+          Object.assign(lama, x, { dibuat_oleh: lama.dibuat_oleh, nomor: lama.nomor }); log(t + '.update', t, lama.id, '');
+        }
         else { x.id = crypto.randomUUID(); x.dibuat_oleh = p.id; x.dibuat_pada = new Date().toISOString(); if (t !== 'pemantauan') x.nomor = t.toUpperCase().slice(0, 3) + '-' + hariIni().slice(2).replace(/-/g, '') + '-' + Math.random().toString(16).slice(2, 7).toUpperCase(); db[t].unshift(x); log(t + '.insert', t, x.id, ''); }
         simpan(); return lama || x;
       },
@@ -539,11 +547,12 @@
           capa_terlambat: semua.filter(l => l.target_tanggal && l.target_tanggal < (b + '-01' < kini ? b + '-01' : kini) && ['ditugaskan', 'dalam_tindak_lanjut'].includes(l.status)).length,
           persen_selesai_bulan_ini: L.length ? Math.round(1000 * L.filter(l => l.status === 'tertutup').length / L.length) / 10 : null,
           inspeksi_jumlah: I.length, inspeksi_temuan: I.reduce((s, x) => s + (x.jumlah_temuan || 0), 0), inspeksi_kepatuhan_rata: I.length ? Math.round(10 * I.reduce((s, x) => s + (+x.skor_kepatuhan || 0), 0) / I.length) / 10 : null,
-          jsa_jumlah: J.length, jsa_risiko_tinggi: J.filter(x => x.skor_maks >= 10).length, pemantauan_jumlah: M.length, pemantauan_melebihi: M.filter(x => ['melebihi', 'kurang'].includes(x.status)).length,
+          jsa_jumlah: J.length, jsa_risiko_tinggi: J.filter(x => x.skor_maks > ((pita[1] || {}).maks || 9)).length, pemantauan_jumlah: M.length, pemantauan_melebihi: M.filter(x => ['melebihi', 'kurang'].includes(x.status)).length,
           keluhan_kesehatan: M.filter(x => x.jenis === 'kesehatan').reduce((s, x) => s + (x.jumlah_kasus || 0), 0) };
       },
       async arsipBulanan() { return db.bulanan || []; },
       async buatLaporanBulanan(awal) { if (!k3rs()) tolak('Hanya K3RS'); const d = await this.ringkasanBulanan(awal); db.bulanan = (db.bulanan || []).filter(x => x.periode !== String(awal).slice(0, 10)); db.bulanan.unshift({ periode: String(awal).slice(0, 10), data: d, dibuat_pada: new Date().toISOString(), dibuat_oleh: saya().id, status: 'selesai' }); simpan(); return d; },
+      async jejak(tabel, id) { if (!k3rs()) return []; return (db.jejak || []).filter(j => j.tabel === tabel && j.rec_id === id); },
       async sinkronRingkas() { if (!k3rs()) tolak('Hanya K3RS'); return { token_terpasang: false, per_status: {}, gagal_terakhir: [], log: [], demo: true }; },
       async sinkronToken() { tolak('Sinkronisasi Google Sheets hanya tersedia di mode Supabase'); },
       async sinkronUlang() { tolak('Sinkronisasi Google Sheets hanya tersedia di mode Supabase'); }

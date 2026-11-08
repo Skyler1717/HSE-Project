@@ -20,6 +20,15 @@
   const JENIS_DOK = { sop: 'SOP', ik: 'Instruksi kerja', kebijakan: 'Kebijakan', pedoman: 'Pedoman', formulir: 'Formulir', lainnya: 'Lainnya' };
   const STATUS_DOK = { aktif: ['✓ Aktif', 'rk-0'], diganti: ['⚠ Versi lama (diganti)', 'rk-2'], nonaktif: ['✕ Nonaktif', 'rk-x'] };
   const badgeDok = s => badge((STATUS_DOK[s] || [s])[0], (STATUS_DOK[s] || [, 'netral'])[1]);
+  const statusTinjau = d => !d.tanggal_tinjau || d.status !== 'aktif' ? null : d.tanggal_tinjau < I.tanggalLokal() ? badge('⚠ Lewat tanggal tinjau', 'rk-3') : d.tanggal_tinjau <= I.geserHari(I.tanggalLokal(), 30) ? badge('△ Tinjau ≤ 30 hari', 'rk-1') : null;
+  // Rantai versi: dari versi tertua sampai terbaru (dokumen lama tidak pernah hilang diam-diam)
+  function rantaiVersi(dok, d) {
+    let awal = d; const lihat = new Set([d.id]);
+    while (awal.menggantikan) { const x = dok.find(z => z.id === awal.menggantikan); if (!x || lihat.has(x.id)) break; lihat.add(x.id); awal = x; }
+    const out = [awal]; let k = awal;
+    for (;;) { const n = dok.find(z => z.menggantikan === k.id && !out.includes(z)); if (!n) break; out.push(n); k = n; }
+    return out;
+  }
 
   // ---------- Ekstraksi teks (di perangkat; berkas tidak dikirim ke layanan lain) ----------
   function potong(teks, mulai) {
@@ -79,7 +88,7 @@
     const jalan = () => A.jalankanCari('SOP ' + cari.value, hasil);
     const grup = s => dok.filter(d => d.status === s);
     const kartuDok = d => h('a', { class: 'kartu dok' + (d.status !== 'aktif' ? ' lama' : ''), href: '#/sop?id=' + encodeURIComponent(d.id) },
-      h('span', { class: 'ikon-kotak' }, ikon('sop')), h('span', { class: 'teks-menu' }, h('strong', { text: d.judul }), h('small', { text: [JENIS_DOK[d.jenis], d.nomor, 'v' + d.versi, d.berlaku_mulai ? 'berlaku ' + A.tgl(d.berlaku_mulai) : null, d.unit_id ? namaUnit(d.unit_id) : 'Semua unit'].filter(Boolean).join(' · ') })), badgeDok(d.status));
+      h('span', { class: 'ikon-kotak' }, ikon('sop')), h('span', { class: 'teks-menu' }, h('strong', { text: d.judul }), h('small', { text: [JENIS_DOK[d.jenis], d.nomor, 'v' + d.versi, d.berlaku_mulai ? 'berlaku ' + A.tgl(d.berlaku_mulai) : null, d.unit_id ? namaUnit(d.unit_id) : 'Semua unit'].filter(Boolean).join(' · ') }), statusTinjau(d)), badgeDok(d.status));
     tampil(halaman('SOP & dokumen', '/sop', [
       h('form', { class: 'kartu cari-kotak', onsubmit: e => { e.preventDefault(); jalan(); } }, h('div', { class: 'baris-tanya' }, cari, h('button', { type: 'submit', class: 'btn utama' }, ikon('cari'), 'Cari')),
         h('p', { class: 'kecil', text: 'Pencarian teks penuh di isi dokumen. Hasil selalu menyebut judul, nomor, versi, dan halaman sumber.' })),
@@ -97,11 +106,15 @@
     tampil(halaman(d.judul, '/sop', [
       h('section', { class: 'kartu' }, h('div', { class: 'kartu-kepala' }, h('h2', { text: d.judul }), badgeDok(d.status)),
         h('p', { class: 'kecil', text: [JENIS_DOK[d.jenis], d.nomor || 'tanpa nomor', 'versi ' + d.versi, d.berlaku_mulai ? 'berlaku sejak ' + A.tgl(d.berlaku_mulai) : null, d.unit_id ? 'unit ' + namaUnit(d.unit_id) : 'semua unit', 'teks: ' + d.metode_ekstraksi].filter(Boolean).join(' · ') }),
+        h('dl', { class: 'rincian' }, h('dt', { text: 'Pemilik dokumen' }), h('dd', { text: d.pemilik || '—' }), h('dt', { text: 'Tanggal tinjau ulang' }), h('dd', {}, d.tanggal_tinjau ? A.tgl(d.tanggal_tinjau) + ' ' : '—', statusTinjau(d)),
+          h('dt', { text: 'Disahkan/diunggah' }), h('dd', { text: A.tgl(d.dibuat_pada) + ' oleh K3RS' }), d.catatan_revisi ? [h('dt', { text: 'Catatan revisi' }), h('dd', { text: d.catatan_revisi })] : null),
+        rantaiVersi(dok, d).length > 1 ? h('div', {}, h('h3', { text: 'Riwayat versi' }), h('ol', { class: 'jejak-daftar' }, rantaiVersi(dok, d).map(v => h('li', {}, v.id === d.id ? h('strong', { text: 'v' + v.versi + ' (dokumen ini)' }) : h('a', { href: '#/sop?id=' + encodeURIComponent(v.id), text: 'v' + v.versi }), ' · ' + (v.berlaku_mulai ? 'berlaku ' + A.tgl(v.berlaku_mulai) + ' · ' : ''), badgeDok(v.status), v.catatan_revisi ? h('small', { text: ' — ' + v.catatan_revisi }) : null)))) : null,
         d.status !== 'aktif' ? h('p', { class: 'catatan-batas' }, ikon('awas'), h('span', { text: 'Dokumen ini BUKAN versi aktif.' + (baru ? ' Versi berlaku: ' : '') }), baru ? h('a', { href: '#/sop?id=' + encodeURIComponent(baru.id), text: baru.judul + ' v' + baru.versi }) : null) : null,
         h('div', { class: 'tombol-baris' }, d.path ? tombol([ikon('unduh'), 'Buka berkas asli'], async ev => { await sibuk(ev.currentTarget, async () => { const u = await API.urlDokumen(d.path); if (u) window.open(u, '_blank', 'noopener'); }).catch(() => {}); }, 'kedua') : null,
           tombol([ikon('suara'), 'Bacakan halaman ' + (halSorot || 1)], () => A.bacakan(((isi.find(b => b.halaman === (halSorot || 1)) || isi[0] || {}).teks || '').slice(0, 1500)), 'teks'),
           peran() === 'k3rs' ? [d.status !== 'nonaktif' ? tombol('Nonaktifkan', () => ubah('nonaktif'), 'teks') : tombol('Aktifkan', () => ubah('aktif'), 'teks'), h('a', { class: 'btn teks', href: '#/sop?unggah=1&ganti=' + encodeURIComponent(d.id) }, ikon('muat'), 'Unggah versi baru')] : null)),
-      h('section', { class: 'kartu dok-isi' }, isi.length ? isi.map(b => h('article', { class: 'dok-hal' + (b.halaman === halSorot ? ' sorot' : ''), id: 'hal-' + b.halaman }, h('h3', { text: 'Halaman/bagian ' + b.halaman }), h('p', { class: 'teks-dok', text: b.teks }))) : kosong('Isi teks belum tersedia.'))], { kembali: true }));
+      h('section', { class: 'kartu dok-isi' }, isi.length ? isi.map(b => h('article', { class: 'dok-hal' + (b.halaman === halSorot ? ' sorot' : ''), id: 'hal-' + b.halaman }, h('h3', { text: 'Halaman/bagian ' + b.halaman }), h('p', { class: 'teks-dok', text: b.teks }))) : kosong('Isi teks belum tersedia.')),
+      peran() === 'k3rs' ? A.panelJejak('dokumen', d.id) : null], { kembali: true }));
     if (halSorot) { const el = document.getElementById('hal-' + halSorot); if (el) el.scrollIntoView({ block: 'start' }); }
   }
   function formUnggah(dok) {
@@ -110,6 +123,9 @@
     const judul = h('input', { required: true, maxlength: 200, value: lama ? lama.judul : '' }), nomor = h('input', { maxlength: 60, value: lama ? lama.nomor : '' });
     const versi = h('input', { required: true, maxlength: 20, value: lama ? String((+lama.versi || 0) + 1 || '') : '1' }), jenis = pilih(Object.entries(JENIS_DOK), lama ? lama.jenis : 'sop');
     const berlaku = h('input', { type: 'date', value: I.tanggalLokal() }), unit = pilih([['', 'Semua unit'], ...A.S.ref.unit.map(u => [u.id, u.nama])], lama ? lama.unit_id || '' : '');
+    const tambahTahun = (t, n) => { const x = new Date(t + 'T12:00:00Z'); x.setUTCFullYear(x.getUTCFullYear() + n); return x.toISOString().slice(0, 10); };
+    const pemilik = h('input', { maxlength: 80, value: lama ? lama.pemilik || '' : '', placeholder: 'Contoh: Komite K3RS' }), tinjau = h('input', { type: 'date', value: tambahTahun(I.tanggalLokal(), 2) });
+    const catatanRev = h('input', { maxlength: 500, placeholder: lama ? 'Apa yang berubah dari versi ' + lama.versi + '?' : 'Contoh: terbitan pertama' });
     const gantiSel = pilih([['', '— tidak menggantikan dokumen lain —'], ...dok.filter(x => x.status === 'aktif').map(x => [x.id, x.judul + ' v' + x.versi])], ganti || '');
     const info = h('p', { class: 'kecil', 'aria-live': 'polite' }), pratinjau = h('div', { class: 'pratinjau-dok' });
     let hasil = null;
@@ -128,9 +144,13 @@
       e.preventDefault(); const f = berkas.files[0];
       if (!f) return toast('Pilih berkas', 'galat'); if (!hasil) return toast('Tunggu sampai teks selesai dibaca', 'galat');
       const bagian = hasil.bagian.filter(b => b.teks.trim()); if (!bagian.length) return toast('Isi teks dokumen kosong', 'galat');
-      await sibuk(btn, async () => { const id = await API.simpanDokumen({ judul: judul.value.trim(), nomor: nomor.value.trim(), versi: versi.value.trim(), jenis: jenis.value, berlaku_mulai: berlaku.value || null, unit_id: unit.value ? +unit.value : null, menggantikan: gantiSel.value || null, metode_ekstraksi: hasil.metode, status: 'aktif' }, bagian, f); toast('Dokumen tersimpan dan dapat dicari', 'ok'); pergi('/sop?id=' + encodeURIComponent(id)); }).catch(() => {});
+      if (gantiSel.value && !catatanRev.value.trim()) return toast('Tulis catatan revisi untuk versi baru', 'galat');
+      const meta = { judul: judul.value.trim(), nomor: nomor.value.trim(), versi: versi.value.trim(), jenis: jenis.value, berlaku_mulai: berlaku.value || null, unit_id: unit.value ? +unit.value : null, menggantikan: gantiSel.value || null, metode_ekstraksi: hasil.metode, status: 'aktif' };
+      if (pemilik.value.trim()) meta.pemilik = pemilik.value.trim(); if (tinjau.value) meta.tanggal_tinjau = tinjau.value; if (catatanRev.value.trim()) meta.catatan_revisi = catatanRev.value.trim();
+      await sibuk(btn, async () => { const id = await API.simpanDokumen(meta, bagian, f); toast('Dokumen tersimpan dan dapat dicari', 'ok'); pergi('/sop?id=' + encodeURIComponent(id)); }).catch(() => {});
     } }, bidang('Berkas (PDF, DOCX, TXT, PNG, JPG · maks. 20 MB)', berkas, 'Teks dibaca di perangkat ini. PDF hasil pindai dan gambar dibaca dengan OCR.'), info,
       bidang('Judul', judul), h('div', { class: 'tiga' }, bidang('Nomor dokumen', nomor), bidang('Versi', versi), bidang('Jenis', jenis)), h('div', { class: 'tiga' }, bidang('Berlaku mulai', berlaku), bidang('Berlaku untuk', unit), bidang('Menggantikan', gantiSel)),
+      h('div', { class: 'tiga' }, bidang('Pemilik dokumen', pemilik), bidang('Tanggal tinjau ulang', tinjau, 'Bawaan 2 tahun; notifikasi muncul 30 hari sebelumnya.'), bidang('Catatan revisi', catatanRev)),
       pratinjau, btn)], { kembali: true, sempit: true }));
   }
 
