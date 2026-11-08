@@ -8,6 +8,7 @@
  *       SUPABASE_URL       = https://fkynbegfeodymincuucy.supabase.co
  *       SUPABASE_ANON_KEY  = (kunci anon/publik yang sama dengan config.js)
  *       HSE_TOKEN          = (token dari aplikasi: Admin → Google Sheets → Buat token)
+ *       SHEET_ID           = (hanya bila skrip dibuat di script.google.com: URL spreadsheet tujuan)
  *  3. Pilih fungsi "pasang" → Run → izinkan akses. Selesai: sinkron otomatis tiap 10 menit.
  *  4. Bagikan spreadsheet HANYA ke akun yang berwenang (berisi data K3 internal).
  *
@@ -22,6 +23,16 @@ var TAB = {
 };
 var URUTAN_TAB = ['Dashboard', 'Risk Register', 'Hazard Report', 'Near Miss', 'Incident Report', 'CAPA', 'JSA', 'Inspection', 'HSE Monitoring', 'Monthly Report'];
 
+/** Spreadsheet tujuan: yang menempel pada skrip, atau dari Script property SHEET_ID (URL/ID spreadsheet). */
+function buku_() {
+  var ss = SpreadsheetApp.getActive(); if (ss) return ss;
+  var v = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+  if (!v) throw new Error('Skrip ini tidak menempel pada spreadsheet. Isi Script property SHEET_ID dengan alamat (URL) Google Spreadsheet tujuan.');
+  var m = String(v).match(/\/d\/([-\w]{25,})/) || String(v).match(/([-\w]{25,})/);
+  if (!m) throw new Error('SHEET_ID tidak valid. Tempel URL lengkap spreadsheet.');
+  return SpreadsheetApp.openById(m[1]);
+}
+
 function prop_(k) { var v = PropertiesService.getScriptProperties().getProperty(k); if (!v) throw new Error('Script property ' + k + ' belum diisi'); return v; }
 
 function rpc_(fungsi, isi) {
@@ -35,7 +46,7 @@ function rpc_(fungsi, isi) {
 
 /** Jalankan sekali: membuat tab, judul kolom, dan jadwal otomatis. */
 function pasang() {
-  var ss = SpreadsheetApp.getActive();
+  var ss = buku_();
   URUTAN_TAB.forEach(function (n, i) { var sh = ss.getSheetByName(n) || ss.insertSheet(n, i); if (sh.getLastRow() === 0 && n !== 'Dashboard') { sh.getRange(1, 1).setValue('id'); sh.setFrozenRows(1); } });
   var awal = ss.getSheetByName('Sheet1') || ss.getSheetByName('Lembar1'); if (awal && ss.getSheets().length > 1 && awal.getLastRow() === 0) ss.deleteSheet(awal);
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'sinkron') ScriptApp.deleteTrigger(t); });
@@ -47,7 +58,7 @@ function pasang() {
 function sinkron() {
   var kunci = LockService.getScriptLock(); if (!kunci.tryLock(5000)) return;
   try {
-    var ss = SpreadsheetApp.getActive(), token = prop_('HSE_TOKEN'), total = 0;
+    var ss = buku_(), token = prop_('HSE_TOKEN'), total = 0;
     for (var putaran = 0; putaran < 10; putaran++) {
       var antrean = rpc_('sinkron_ambil', { p_token: token, p_batas: 200 }) || [];
       if (!antrean.length) break;
