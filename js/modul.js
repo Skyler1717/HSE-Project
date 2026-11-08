@@ -117,9 +117,9 @@
     I.deteksiLonjakan(L, l => l.kategori_kode, l => l.tanggal_lapor).forEach(x => P.push([2, 'Bahaya ' + kat(x.k).nama + ' meningkat', x.baru + ' laporan dalam 30 hari vs ±' + x.harapan + ' biasanya', 'grafik', null]));
     const mendesak = L.filter(l => l.mendesak && terbuka(l)); if (mendesak.length) P.push([3, mendesak.length + ' laporan mendesak belum selesai', mendesak.slice(0, 3).map(l => l.nomor).join(', '), 'awas', '#/semua?mendesak=1']);
     const telat = L.filter(terlambat); if (telat.length) P.push([2, telat.length + ' CAPA melewati target', 'Tertua: ' + telat.map(l => l.target_tanggal).sort()[0], 'jam', '#/tugas']);
-    const tinggiTerbuka = L.filter(l => terbuka(l) && l.skor >= 15); if (tinggiTerbuka.length) P.push([3, tinggiTerbuka.length + ' risiko sangat tinggi masih terbuka', 'Skor ≥ 15 (dampak × kemungkinan)', 'awas', null]);
+    const tinggiTerbuka = L.filter(l => terbuka(l) && A.levelRisiko(l.skor) >= 3); if (tinggiTerbuka.length) P.push([3, tinggiTerbuka.length + ' risiko tingkat tertinggi masih terbuka', 'Sesuai pita risiko di Pengaturan (dampak × kemungkinan)', 'awas', null]);
     pm30.forEach(m => P.push([2, (I.PARAMETER[m.parameter] || { label: m.parameter }).label + ' ' + (m.status === 'melebihi' ? 'melebihi' : 'di bawah') + ' ambang di ' + namaUnit(m.unit_id), m.nilai + ' ' + m.satuan + ' (ambang ' + (m.status === 'melebihi' ? m.ambang_maks : m.ambang_min) + ')', 'monitor', '#/pemantauan']));
-    d.jsa.filter(j => j.status === 'draf' && j.skor_maks >= 10).forEach(j => P.push([2, 'JSA risiko tinggi belum disetujui', j.nomor + ' · ' + j.pekerjaan, 'jsa', '#/jsa?id=' + encodeURIComponent(j.id)]));
+    d.jsa.filter(j => j.status === 'draf' && A.levelRisiko(j.skor_maks) >= 2).forEach(j => P.push([2, 'JSA risiko tinggi belum disetujui', j.nomor + ' · ' + j.pekerjaan, 'jsa', '#/jsa?id=' + encodeURIComponent(j.id)]));
     const temuanBaru = d.inspeksi.filter(x => dalamHari(x.tanggal, 14) && x.jumlah_temuan > 0); if (temuanBaru.length) P.push([1, temuanBaru.reduce((s, x) => s + x.jumlah_temuan, 0) + ' temuan inspeksi 14 hari terakhir', 'Pastikan setiap temuan ditindaklanjuti', 'inspeksi', '#/inspeksi']);
     const cu = LS.get('k3_cuaca', null);
     if (cu && Date.now() - cu.waktu < 3 * 3600e3) I.risikoCuaca(ringkasCuaca(cu.data).gabungan).forEach(x => P.push([x.tingkat, 'Cuaca: ' + x.judul, x.saran[0], 'awan', '#/intel?tab=cuaca']));
@@ -188,7 +188,7 @@
     const lokasi = I.urutHitung(I.hitung(d.laporan, l => (namaUnit(l.unit_id) + (l.lokasi ? ' — ' + l.lokasi : '')))).slice(0, 10);
     // Tren skor risiko bulanan
     const bulan = I.deretBulan(6), skorBulan = bulan.map(b => { const x = d.laporan.filter(l => (l.tanggal_lapor || '').startsWith(b) && l.skor); return x.length ? Math.round(x.reduce((s, l) => s + l.skor, 0) / x.length * 10) / 10 : 0; });
-    const tinggiBulan = bulan.map(b => d.laporan.filter(l => (l.tanggal_lapor || '').startsWith(b) && l.skor >= 10).length);
+    const tinggiBulan = bulan.map(b => d.laporan.filter(l => (l.tanggal_lapor || '').startsWith(b) && A.levelRisiko(l.skor) >= 2).length);
     w.replaceChildren(
       h('div', { class: 'intel-grid' },
         h('section', { class: 'kartu' }, h('h2', { text: 'Matriks risiko 5 × 5' }), bidang('Sumber data', pilihSumber), h('p', { class: 'kecil', text: 'Ketuk sel untuk melihat catatan di dalamnya. Simbol ○ △ ◇ ✕ membedakan tingkat tanpa bergantung warna.' }), wadahMatriks, daftar),
@@ -197,7 +197,7 @@
       h('section', { class: 'kartu' }, h('h2', { text: 'Peta hazard: unit × jenis bahaya' }), h('p', { class: 'kecil', text: 'Angka = jumlah laporan. Semakin gelap semakin banyak. Ketuk angka untuk melihat laporannya.' }), unitAda.length ? hm : kosong('Belum ada laporan.')),
       h('div', { class: 'intel-grid' },
         h('section', { class: 'kartu' }, h('h2', { text: 'Lokasi dengan laporan terbanyak' }), G.batang(lokasi.map(x => ({ label: x.k, n: x.n, w: 'navy' })), { persen: false })),
-        h('section', { class: 'kartu' }, h('h2', { text: 'Tren risiko 6 bulan' }), G.garis(bulan.map(b => b.slice(5) + '/' + b.slice(2, 4)), [{ nama: 'Rata-rata skor', data: skorBulan, w: 'waspada' }, { nama: 'Risiko ≥ 10', data: tinggiBulan, w: 'kritis' }], { judul: 'Tren skor risiko bulanan' }))));
+        h('section', { class: 'kartu' }, h('h2', { text: 'Tren risiko 6 bulan' }), G.garis(bulan.map(b => b.slice(5) + '/' + b.slice(2, 4)), [{ nama: 'Rata-rata skor', data: skorBulan, w: 'waspada' }, { nama: 'Risiko tinggi+', data: tinggiBulan, w: 'kritis' }], { judul: 'Tren skor risiko bulanan' }))));
   }
 
   // ---------- Tab 3: Tren & epidemiologi ----------
@@ -438,7 +438,80 @@
     gambar();
   }
 
+  // =====================================================================
+  // RIWAYAT PERUBAHAN (jejak: nilai lama → baru, pelaku, waktu) — khusus K3RS
+  // =====================================================================
+  const NAMA_KOLOM = { status: 'Status', pj_id: 'Penanggung jawab', target_tanggal: 'Target', dampak: 'Dampak', kemungkinan: 'Kemungkinan', skor: 'Skor risiko', level_pengendalian: 'Pengendalian',
+    lokasi: 'Lokasi', uraian: 'Uraian', pekerjaan: 'Pekerjaan', langkah: 'Langkah kerja', pj_nama: 'Penanggung jawab', skor_maks: 'Skor tertinggi', disetujui_oleh: 'Disetujui oleh', hasil: 'Hasil periksa',
+    skor_kepatuhan: 'Kepatuhan', jumlah_temuan: 'Temuan', nilai: 'Nilai', ambang_min: 'Ambang min', ambang_maks: 'Ambang maks', judul: 'Judul', versi: 'Versi', tanggal_tinjau: 'Tanggal tinjau', pemilik: 'Pemilik', mendesak: 'Mendesak', ditutup_pada: 'Ditutup' };
+  let namaPengguna = null;
+  const tampilNilai = v => v === null || v === undefined || v === '' ? '—' : typeof v === 'object' ? (Array.isArray(v) ? v.length + ' butir' : '{…}') : String(v).slice(0, 80);
+  function panelJejak(tabel, id) {
+    const isi = h('div', { class: 'jejak-isi' }, h('p', { class: 'kecil', text: 'Memuat…' }));
+    let dimuat = false;
+    const d = h('details', { class: 'kartu jejak', ontoggle: async () => {
+      if (!d.open || dimuat) return; dimuat = true;
+      try {
+        const [J] = await Promise.all([API.jejak(tabel, id), namaPengguna ? null : API.daftarPengguna().then(P => { namaPengguna = Object.fromEntries(P.map(u => [u.id, u.nama])); }).catch(() => { namaPengguna = {}; })]);
+        if (J === null) return isi.replaceChildren(h('p', { class: 'kecil', text: 'Riwayat perubahan aktif setelah admin menjalankan supabase/21_jejak_dan_dokumen.sql.' }));
+        isi.replaceChildren(J.length ? h('ol', { class: 'jejak-daftar' }, J.map(j => h('li', {},
+          h('div', { class: 'kecil' }, h('strong', { text: I.formatWaktu(j.pada) + ' WITA' }), ' · ' + ({ buat: 'Dibuat', ubah: 'Diubah', hapus: 'Dihapus' }[j.aksi] || j.aksi) + ' oleh ' + (j.aktor ? (namaPengguna[j.aktor] || 'pengguna ' + String(j.aktor).slice(0, 8)) : 'anonim/sistem')),
+          j.aksi === 'ubah' ? h('ul', {}, Object.keys(j.sesudah || {}).map(k => h('li', {}, h('span', { text: (NAMA_KOLOM[k] || k) + ': ' }), h('del', { text: tampilNilai((j.sebelum || {})[k]) }), ' → ', h('ins', { text: tampilNilai(j.sesudah[k]) })))) : null)))
+          : h('p', { class: 'kecil', text: 'Belum ada perubahan tercatat.' }));
+      } catch (e) { isi.replaceChildren(h('p', { class: 'kecil', text: e.message })); }
+    } }, h('summary', {}, ikon('riwayat'), ' Riwayat perubahan'), isi);
+    return d;
+  }
+  A.panelJejak = panelJejak;
+
+  // =====================================================================
+  // NOTIFIKASI & ESKALASI (dihitung dari data aktual sesuai hak akses; tanpa duplikat)
+  // =====================================================================
+  const KUNCI_BACA = () => 'k3_notif_dibaca_' + ((A.S.sesi && A.S.sesi.profil.id) || '');
+  async function daftarNotifikasi() {
+    const p = peran(); if (!p) return [];
+    const d = await muatData(), kini = I.tanggalLokal(), saya = A.S.sesi.profil.id, N = [];
+    const dalam3 = I.geserHari(kini, 3), L = d.laporan;
+    const tambah = (id, tingkat, judul, isi, href, ik) => N.push({ id, tingkat, judul, isi, href, ik });
+    if (p === 'k3rs') L.filter(l => l.status === 'baru').forEach(l => tambah('baru:' + l.id, l.mendesak ? 3 : 1, 'Laporan baru belum ditugaskan: ' + l.nomor, kat(l.kategori_kode).nama + ' · ' + namaUnit(l.unit_id) + (l.mendesak ? ' · MENDESAK' : ''), '#/laporan/' + encodeURIComponent(l.id), 'kotakmasuk'));
+    if (p !== 'petugas') {
+      L.filter(l => terbuka(l) && A.levelRisiko(l.skor) >= 2 && (p === 'k3rs' || l.pj_id === saya || l.unit_id === A.S.sesi.profil.unit_id)).forEach(l => tambah('tinggi:' + l.id, A.levelRisiko(l.skor) >= 3 ? 3 : 2, 'Risiko ' + A.tingkat(l.skor).toLowerCase() + ' masih terbuka: ' + l.nomor, kat(l.kategori_kode).nama + ' · ' + namaUnit(l.unit_id), '#/laporan/' + encodeURIComponent(l.id), 'awas'));
+      L.filter(l => (p === 'k3rs' || l.pj_id === saya) && ['ditugaskan', 'dalam_tindak_lanjut'].includes(l.status) && l.target_tanggal).forEach(l => {
+        if (l.target_tanggal < kini) tambah('telat:' + l.id + ':' + l.target_tanggal, 3, 'CAPA terlambat: ' + l.nomor, 'Target ' + A.tgl(l.target_tanggal), '#/laporan/' + encodeURIComponent(l.id), 'jam');
+        else if (l.target_tanggal <= dalam3) tambah('tempo:' + l.id + ':' + l.target_tanggal, 2, 'CAPA jatuh tempo: ' + l.nomor, 'Target ' + A.tgl(l.target_tanggal), '#/laporan/' + encodeURIComponent(l.id), 'kalender');
+      });
+    }
+    if (p === 'k3rs') {
+      L.filter(l => l.status === 'terkendali_sementara').forEach(l => tambah('verif:' + l.id, 1, 'Belum diverifikasi permanen: ' + l.nomor, 'Pengendalian baru administratif/APD; perlu rekayasa atau eliminasi', '#/laporan/' + encodeURIComponent(l.id), 'piramida'));
+      d.jsa.filter(j => j.status === 'draf').forEach(j => tambah('jsa:' + j.id + ':' + (j.diperbarui_pada || j.dibuat_pada), A.levelRisiko(j.skor_maks) >= 2 ? 2 : 1, 'JSA menunggu persetujuan: ' + j.nomor, j.pekerjaan + ' · ' + namaUnit(j.unit_id), '#/jsa?id=' + encodeURIComponent(j.id), 'jsa'));
+      try { (await API.daftarDokumen()).filter(x => x.status === 'aktif' && x.tanggal_tinjau && x.tanggal_tinjau <= I.geserHari(kini, 30)).forEach(x => tambah('tinjau:' + x.id + ':' + x.tanggal_tinjau, x.tanggal_tinjau < kini ? 2 : 1, (x.tanggal_tinjau < kini ? 'Dokumen lewat tanggal tinjau: ' : 'Dokumen perlu ditinjau segera: ') + x.judul, 'Tanggal tinjau ' + A.tgl(x.tanggal_tinjau), '#/sop?id=' + encodeURIComponent(x.id), 'sop')); } catch (e) { /* modul dokumen belum aktif */ }
+      // Rekomendasi prioritas inspeksi: unit dengan laporan terbanyak 30 hari tetapi tanpa inspeksi 30 hari
+      const unitLapor = I.urutHitung(I.hitung(L.filter(l => dalamHari(l.tanggal_lapor, 30)), l => l.unit_id));
+      unitLapor.filter(u => u.n >= 3 && !d.inspeksi.some(x => String(x.unit_id) === u.k && dalamHari(x.tanggal, 30))).slice(0, 3).forEach(u => tambah('inspeksi:' + u.k + ':' + kini.slice(0, 7), 1, 'Prioritas inspeksi: ' + namaUnit(+u.k), u.n + ' laporan dalam 30 hari dan belum ada inspeksi 30 hari terakhir', '#/inspeksi?baru=1', 'inspeksi'));
+    }
+    const dibaca = new Set(LS.get(KUNCI_BACA(), []));
+    return N.sort((a, b) => b.tingkat - a.tingkat).map(n => Object.assign(n, { dibaca: dibaca.has(n.id) }));
+  }
+  async function perbaruiLonceng() {
+    const el = document.querySelector('.lonceng-n'); if (!el || !peran()) return;
+    try { const n = (await daftarNotifikasi()).filter(x => !x.dibaca).length; el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); el.parentElement.setAttribute('aria-label', 'Notifikasi' + (n ? ', ' + n + ' belum dibaca' : '')); } catch (e) { el.hidden = true; }
+  }
+  // Perbarui lencana setiap kali halaman baru dirender (bukan berdasarkan jeda waktu)
+  const wadahApp = document.getElementById('app');
+  if (wadahApp && window.MutationObserver) new MutationObserver(() => { const el = document.querySelector('.lonceng-n'); if (el && !el.dataset.diisi) { el.dataset.diisi = '1'; perbaruiLonceng(); } }).observe(wadahApp, { childList: true });
+  async function hNotifikasi() {
+    const N = await daftarNotifikasi();
+    const tandai = ids => { const s = new Set(LS.get(KUNCI_BACA(), [])); ids.forEach(i => s.add(i)); LS.set(KUNCI_BACA(), [...s].slice(-1000)); };
+    tampil(halaman('Notifikasi', '/notifikasi', [
+      h('div', { class: 'tombol-baris antara' }, h('p', { class: 'kecil', text: N.filter(x => !x.dibaca).length + ' belum dibaca · dihitung dari data terbaru sesuai hak akses Anda' }),
+        N.length ? tombol([ikon('centang'), 'Tandai semua dibaca'], () => { tandai(N.map(x => x.id)); A.jalankan(); }, 'teks') : null),
+      N.length ? h('div', { class: 'daftar-peringatan', role: 'list' }, N.map(n => { const el = peringatan(n.tingkat, n.judul, n.isi, n.ik, n.href); if (n.dibaca) el.classList.add('dibaca'); el.addEventListener('click', () => tandai([n.id])); return el; }))
+        : h('section', { class: 'kartu' }, h('p', { class: 'ok-teks' }, ikon('centang'), ' Tidak ada notifikasi. Semua tindakan sesuai jadwal.'))]));
+    setTimeout(perbaruiLonceng, 100);
+  }
+  A.daftarNotifikasi = daftarNotifikasi;
+
   // ---------- Daftarkan rute ----------
-  Object.assign(A.RUTE, { '/intel': hIntel, '/cari': hCari });
+  Object.assign(A.RUTE, { '/intel': hIntel, '/cari': hCari, '/notifikasi': hNotifikasi });
   A.jalankanCari = jalankanCari; A.tab = tab; A.ubin = ubin; A.peringatan = peringatan; A.ikonBahaya = ikonBahaya; A.qs = qs; A.bacakan = bacakan; A.suaraAktif = suaraAktif;
 })();

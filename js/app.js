@@ -250,7 +250,8 @@
     return h('header', { class: 'bilah' },
       kembali ? h('button', { type: 'button', class: 'kembali', 'aria-label': 'Kembali', onclick: () => history.length > 1 ? history.back() : pergi('/beranda') }, ikon('kiri')) : h('a', { class: 'logo', href: '#/beranda', 'aria-label': 'HSE Safety First — Beranda' }, lambang()),
       h('h1', { text: judul }),
-      h('div', { class: 'bilah-kanan' }, penandaKoneksi(), API.mode === 'demo' ? badge('MODE DEMO', 'demo') : null));
+      h('div', { class: 'bilah-kanan' }, penandaKoneksi(), API.mode === 'demo' ? badge('MODE DEMO', 'demo') : null,
+        peran() ? h('a', { class: 'lonceng-btn', href: '#/notifikasi', 'aria-label': 'Notifikasi', title: 'Notifikasi' }, ikon('lonceng'), h('span', { class: 'lonceng-n', hidden: true })) : null));
   }
   // Satu definisi menu untuk sidebar, menu HP, dan halaman Menu (hanya rute yang ada dan diizinkan)
   function grupMenu() {
@@ -674,7 +675,7 @@
     if (isK3 && !['tertutup', 'tidak_dilanjutkan'].includes(l.status)) aksi.push(await formTugaskan(l));
     if ((isK3 || (p === 'pj_unit' && sayaPJ)) && ['ditugaskan', 'dalam_tindak_lanjut', 'terkendali_sementara'].includes(l.status)) aksi.push(formTL(l));
     aksi.push(formStatus(l, d.tindak_lanjut, isK3, p === 'pj_unit' && sayaPJ));
-    tampil(halaman('Detail laporan', '', [h('div', { class: 'detail-grid' }, h('div', { class: 'detail-utama' }, info, foto, rincian, linimasa, tlKotak), h('div', { class: 'detail-samping' }, aksi))], { kembali: true }));
+    tampil(halaman('Detail laporan', '', [h('div', { class: 'detail-grid' }, h('div', { class: 'detail-utama' }, info, foto, rincian, linimasa, tlKotak, peran() === 'k3rs' && window.K3App.panelJejak ? window.K3App.panelJejak('laporan', l.id) : null), h('div', { class: 'detail-samping' }, aksi))], { kembali: true }));
   }
 
   async function formTugaskan(l) {
@@ -810,7 +811,16 @@
     };
     tampil(halaman('Pengguna', '/admin', [
       h('p', { class: 'kecil', text: 'Akun baru dibuat di Supabase (Authentication → Users → Add user) atau mendaftar sendiri bila diizinkan, lalu diaktifkan di sini. Pengguna belum aktif ditampilkan paling atas.' }),
-      h('div', { class: 'daftar daftar-pengguna' }, P.map(baris))], { kembali: true }));
+      (() => {
+        const cari = h('input', { type: 'search', placeholder: 'Cari nama atau email…', 'aria-label': 'Cari pengguna' });
+        const st = pilih([['', 'Semua status'], ['menunggu', 'Menunggu persetujuan'], ['aktif', 'Aktif']], '', { 'aria-label': 'Filter status' });
+        const pr = pilih([['', 'Semua peran']].concat(Object.entries(PERAN)), '', { 'aria-label': 'Filter peran' });
+        const daftar = h('div', { class: 'daftar daftar-pengguna' }), jml = h('p', { class: 'kecil' });
+        const gambar = () => { const q = cari.value.trim().toLowerCase(); const x = P.filter(u => (!q || (u.nama + ' ' + (u.email || '')).toLowerCase().includes(q)) && (!st.value || (st.value === 'aktif') === !!u.aktif) && (!pr.value || u.peran === pr.value));
+          jml.textContent = x.length + ' dari ' + P.length + ' pengguna'; daftar.replaceChildren(...(x.length ? x.map(baris) : [kosong('Tidak ada pengguna yang cocok.')])); };
+        cari.addEventListener('input', gambar); st.addEventListener('change', gambar); pr.addEventListener('change', gambar); gambar();
+        return [h('div', { class: 'kartu filter' }, cari, st, pr), jml, daftar];
+      })()], { kembali: true }));
   }
 
   function hPengaturan() {
@@ -858,7 +868,7 @@
   }
 
   // ---------- Ekspor ----------
-  const VERSI = '2.0.0';
+  const VERSI = '2.1.0';
   function sel(v) { let s = v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function keCSV(baris, kolom) { return '﻿' + [kolom.map(k => sel(k[1])).join(',')].concat(baris.map(r => kolom.map(k => sel(typeof k[0] === 'function' ? k[0](r) : r[k[0]])).join(','))).join('\r\n'); }
   function unduh(nama, isi, tipe) { const b = new Blob([isi], { type: tipe || 'text/csv;charset=utf-8' }); const a = h('a', { href: URL.createObjectURL(b), download: nama }); document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
@@ -1023,7 +1033,7 @@
 
   // Alat bantu untuk modul halaman tambahan (js/modul.js)
   window.K3App = { S, API, h, ikon, IK, badge, badgeStatus, badgeTingkat, tombol, sibuk, bidang, pilih, toast, konfirmasi, tampil, halaman, kosong, pergi, peran, namaUnit, kat, ikonKat, tingkat, kelasTingkat,
-    tgl, LS, SS, PERAN, JENIS, STATUS, LEVEL, ambilLaporan, unduh, keCSV, KUNCI_DRAF, kunciMerek, lambang, terapkanTema, RUTE, HAK, jalankan, inisial };
+    tgl, LS, SS, PERAN, JENIS, STATUS, LEVEL, ambilLaporan, levelRisiko: s => { const k = kelasTingkat(s); return k === 'rk-x' ? -1 : +k.slice(3); }, unduh, keCSV, KUNCI_DRAF, kunciMerek, lambang, terapkanTema, RUTE, HAK, jalankan, inisial };
 
   async function mulai() {
     terapkanTema();

@@ -14,6 +14,11 @@
   const badgeJsa = s => badge((STATUS_JSA[s] || [s])[2] + ' ' + (STATUS_JSA[s] || [s])[0], (STATUS_JSA[s] || [, 'netral'])[1]);
   const STATUS_PM = { normal: ['✓ Memenuhi', 'rk-0'], melebihi: ['▲ Melebihi ambang', 'rk-3'], kurang: ['▼ Di bawah ambang', 'rk-2'], tidak_ada: ['— Tanpa nilai', 'rk-x'] };
   A.K3Status = s => badge((STATUS_PM[s] || [s])[0], (STATUS_PM[s] || [, 'netral'])[1]);
+  // Validasi kritis keselamatan: langkah berisiko tinggi wajib punya pengendalian efektif (eliminasi/substitusi/rekayasa)
+  const EFEKTIF = ['eliminasi', 'substitusi', 'rekayasa'];
+  function langkahKurang(langkah) {
+    return (langkah || []).map((s, i) => ({ s, i })).filter(({ s }) => s.dampak && s.kemungkinan && A.levelRisiko(s.dampak * s.kemungkinan) >= 2 && !EFEKTIF.some(l => ((s.kontrol || {})[l] || '').trim()));
+  }
   function galatModul(e) { return halaman('Modul belum siap', '', [h('div', { class: 'kartu bahaya-kotak' }, h('strong', { text: e.belumSiap ? 'Modul belum diaktifkan' : 'Terjadi kendala' }), h('p', { text: e.message }))], { kembali: true }); }
 
   // =====================================================================
@@ -81,6 +86,9 @@
       const data = { pekerjaan: pekerjaan.value.trim(), unit_id: +unit.value, lokasi: lokasi.value.trim(), tanggal: tanggal.value, shift: shift.value || null, luar_ruangan: luar.checked, pj_nama: pj.value.trim(), target_tanggal: target.value || null,
         langkah: j.langkah.map(s => ({ langkah: (s.langkah || '').trim().slice(0, 200), uraian_bahaya: (s.uraian_bahaya || '').slice(0, 200), bahaya: s.bahaya || [], dampak: angka(s.dampak), kemungkinan: angka(s.kemungkinan), kontrol_ada: (s.kontrol_ada || '').slice(0, 200), kontrol: s.kontrol || {} })) };
       if (lama) { data.id = lama.id; data.status = lama.status === 'disetujui' && peran() !== 'k3rs' ? 'draf' : lama.status; } else data.status = 'draf';
+      const kurang = langkahKurang(data.langkah);
+      if (kurang.length && !await konfirmasi('Pengendalian belum memadai', 'Langkah ' + kurang.map(x => x.i + 1).join(', ') + ' berisiko ' + A.tingkat(Math.max(...kurang.map(x => x.s.dampak * x.s.kemungkinan))).toLowerCase() + ' tetapi hanya memakai pengendalian administratif/APD. Tambahkan eliminasi, substitusi, atau rekayasa. Tetap simpan sebagai draf untuk ditinjau K3RS?', 'Simpan sebagai draf', true)) return;
+      if (kurang.length) data.status = 'draf';
       await sibuk(btnSimpan, async () => { const r = await API.simpanModul('jsa', data); A.resetData && A.resetData(); toast('JSA tersimpan' + (data.status === 'draf' ? ' sebagai draf. Menunggu persetujuan K3RS.' : ''), 'ok'); pergi('/jsa?id=' + encodeURIComponent(r.id || data.id)); }).catch(() => {});
     } },
       h('section', { class: 'kartu' }, h('h2', { text: 'Pekerjaan' }), bidang('Nama pekerjaan', pekerjaan),
@@ -101,7 +109,8 @@
   function detailJsa(j) {
     const bh = [...new Set((j.langkah || []).flatMap(s => s.bahaya || []))];
     const bolehUbah = peran() === 'k3rs' || (peran() === 'pj_unit' && j.unit_id === unitSaya() && ['draf', 'disetujui'].includes(j.status));
-    const ubahStatus = async (st, pesan) => { if (!await konfirmasi(pesan, 'Status JSA ' + j.nomor + ' akan diubah. Perubahan tercatat di log.', 'Ya, lanjutkan')) return; await API.simpanModul('jsa', { id: j.id, status: st }); A.resetData && A.resetData(); toast('Status diperbarui', 'ok'); A.jalankan(); };
+    const kurang = langkahKurang(j.langkah);
+    const ubahStatus = async (st, pesan) => { if (!await konfirmasi(pesan, (st === 'disetujui' && kurang.length ? 'PERHATIAN: langkah ' + kurang.map(x => x.i + 1).join(', ') + ' berisiko tinggi tanpa pengendalian eliminasi/substitusi/rekayasa. ' : '') + 'Status JSA ' + j.nomor + ' akan diubah. Perubahan tercatat di log.', 'Ya, lanjutkan', st === 'disetujui' && kurang.length > 0)) return; await API.simpanModul('jsa', { id: j.id, status: st }); A.resetData && A.resetData(); toast('Status diperbarui', 'ok'); A.jalankan(); };
     const teksBaca = () => 'Analisis keselamatan kerja: ' + j.pekerjaan + '. ' + (j.langkah || []).map((s, i) => 'Langkah ' + (i + 1) + ': ' + s.langkah + '. Bahaya: ' + (s.uraian_bahaya || '-') + '. Pengendalian: ' + I.URUTAN_KONTROL.map(l => (s.kontrol || {})[l]).filter(Boolean).join('; ')).join('. ');
     tampil(halaman('JSA ' + j.nomor, '/jsa', [
       h('section', { class: 'kartu' }, h('div', { class: 'kartu-kepala' }, h('h2', { text: j.pekerjaan }), badgeJsa(j.status)),
@@ -112,13 +121,15 @@
           staf() && j.status === 'disetujui' && (peran() === 'k3rs' || j.unit_id === unitSaya()) ? tombol([ikon('berhasil'), 'Tandai selesai'], () => ubahStatus('selesai', 'Pekerjaan selesai?'), 'kedua') : null,
           peran() === 'k3rs' && !['dibatalkan', 'selesai'].includes(j.status) ? tombol([ikon('silang'), 'Batalkan'], () => ubahStatus('dibatalkan', 'Batalkan JSA ini?'), 'teks') : null,
           tombol([ikon('suara'), 'Bacakan'], () => bacakan(teksBaca()), 'teks'), tombol([ikon('cetak'), 'Cetak'], () => window.print(), 'teks'))),
+      kurang.length ? h('div', { class: 'peringatan-dini lv-3', role: 'alert' }, h('span', { class: 'pd-ikon', 'aria-hidden': 'true' }, ikon('awas')), h('span', { class: 'pd-isi' }, h('span', { class: 'pd-tingkat', text: '✕ Perlu ditinjau' }), h('strong', { text: 'Pengendalian belum memadai pada langkah ' + kurang.map(x => x.i + 1).join(', ') }), h('small', { text: 'Risiko tinggi hanya dikendalikan dengan administratif/APD. Utamakan eliminasi, substitusi, atau rekayasa sebelum pekerjaan dimulai.' }))) : null,
       h('section', { class: 'kartu' }, h('h2', { text: 'Langkah kerja' }), h('ol', { class: 'jsa-langkah' }, (j.langkah || []).map(s => h('li', {},
         h('div', { class: 'kartu-kepala' }, h('strong', { text: s.langkah }), A.badgeTingkat(s.dampak && s.kemungkinan ? s.dampak * s.kemungkinan : null)),
         h('p', {}, h('strong', { text: 'Bahaya: ' }), s.uraian_bahaya || '—'), (s.bahaya || []).length ? h('div', { class: 'chip-baris' }, s.bahaya.map(b => h('span', { class: 'chip pasif' }, ikon(A.ikonBahaya[b] || 'awas'), (I.BAHAYA[b] || {}).judul || b))) : null,
         s.kontrol_ada ? h('p', { class: 'kecil' }, h('strong', { text: 'Sudah ada: ' }), s.kontrol_ada) : null,
         h('ul', { class: 'hirarki kompak' }, I.URUTAN_KONTROL.filter(l => (s.kontrol || {})[l]).map(l => h('li', { class: 'lv-' + l }, h('strong', { text: I.NAMA_KONTROL[l] + ': ' }), s.kontrol[l]))),
         s.dampak && s.kemungkinan ? h('p', { class: 'kecil' }, 'Perkiraan risiko sisa setelah pengendalian: ', A.badgeTingkat(I.residual(s.dampak, s.kemungkinan, I.URUTAN_KONTROL.find(l => ((s.kontrol || {})[l] || '').trim())).skor)) : null)))),
-      bh.length ? h('section', { class: 'kartu' }, h('h2', { text: 'Kartu keselamatan untuk pekerjaan ini' }), h('div', { class: 'kartu-k3-daftar' }, bh.map((b, i) => A.kartuKeselamatan(b, { buka: i === 0 })))) : null], { kembali: true }));
+      bh.length ? h('section', { class: 'kartu' }, h('h2', { text: 'Kartu keselamatan untuk pekerjaan ini' }), h('div', { class: 'kartu-k3-daftar' }, bh.map((b, i) => A.kartuKeselamatan(b, { buka: i === 0 })))) : null,
+      peran() === 'k3rs' ? A.panelJejak('jsa', j.id) : null], { kembali: true }));
   }
 
   // =====================================================================
@@ -209,7 +220,8 @@
         h('div', { class: 'kartu-kepala' }, h('strong', { text: r.butir }), badge('✕ Tidak sesuai', 'rk-3')), h('p', { text: r.catatan || '—' }),
         h('p', { class: 'kecil', text: 'Rekomendasi: ' + [((I.BAHAYA[r.bahaya] || {}).kontrol || {}).rekayasa, ((I.BAHAYA[r.bahaya] || {}).kontrol || {}).administratif].map(z => (z || [])[0]).filter(Boolean).join(' · ') }),
         tombol([ikon('awas'), 'Laporkan sebagai bahaya'], () => laporkanTemuan(x, r), 'kedua kecil')))) : h('p', { class: 'ok-teks' }, ikon('centang'), ' Tidak ada temuan.')),
-      h('section', { class: 'kartu' }, h('h2', { text: 'Semua butir' }), h('ol', { class: 'daftar-periksa baca' }, (x.hasil || []).map(r => h('li', {}, h('span', { text: r.butir }), badge(r.nilai === 'ya' ? '✓ Sesuai' : r.nilai === 'tidak' ? '✕ Tidak sesuai' : '– N/A', r.nilai === 'ya' ? 'rk-0' : r.nilai === 'tidak' ? 'rk-3' : 'rk-x')))))], { kembali: true }));
+      h('section', { class: 'kartu' }, h('h2', { text: 'Semua butir' }), h('ol', { class: 'daftar-periksa baca' }, (x.hasil || []).map(r => h('li', {}, h('span', { text: r.butir }), badge(r.nilai === 'ya' ? '✓ Sesuai' : r.nilai === 'tidak' ? '✕ Tidak sesuai' : '– N/A', r.nilai === 'ya' ? 'rk-0' : r.nilai === 'tidak' ? 'rk-3' : 'rk-x'))))),
+      peran() === 'k3rs' ? A.panelJejak('inspeksi', x.id) : null], { kembali: true }));
   }
 
   // =====================================================================

@@ -1201,3 +1201,16 @@ mark { background: #FFE58A; color: #3A2A00; padding: 0 2px; border-radius: 3px; 
 :root[data-skema="aksesibel"] .chip.aktif { outline: 2px solid #000; }
 :root[data-skema="aksesibel"] mark { background: #FFD400; color: #000; outline: 1px solid #000; }
 :root[data-skema="aksesibel"][data-theme="dark"], :root[data-skema="aksesibel"]:not([data-theme]) { color-scheme: light; }
+
+/* ---------- 9e. Notifikasi & riwayat perubahan ---------- */
+.lonceng-btn { position: relative; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; color: var(--judul); text-decoration: none; }
+.lonceng-btn:hover { background: var(--permukaan-2); }
+.lonceng-btn .ik { width: 21px; height: 21px; }
+.lonceng-n { position: absolute; top: 3px; right: 1px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px; background: var(--kritis); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; border: 2px solid var(--permukaan); }
+.lonceng-n[hidden] { display: none; }
+.peringatan-dini.dibaca { opacity: .62; }
+.kartu.jejak > summary .ik { width: 18px; height: 18px; }
+.jejak-daftar { padding-left: 18px; margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: var(--fs-s); }
+.jejak-daftar ul { margin: 4px 0 0; padding-left: 16px; }
+.jejak-daftar del { color: var(--tinggi-teks); text-decoration-thickness: 1.5px; }
+.jejak-daftar ins { color: var(--aman-teks); text-decoration: none; font-weight: 600; }
