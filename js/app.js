@@ -1044,7 +1044,7 @@
     window.addEventListener('hashchange', jalankan);
     await jalankan();
     kirimAntrean();
-    if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js').catch(() => {});
+    if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});
   }
   // Mulai setelah semua skrip (termasuk js/modul.js) selesai dimuat
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mulai); else setTimeout(mulai, 0);
