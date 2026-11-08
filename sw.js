@@ -1,6 +1,6 @@
 /* sw.js — Service worker: menyimpan berkas tampilan agar aplikasi tetap terbuka saat sinyal lemah.
    Data laporan dari server TIDAK disimpan di cache (privasi). */
-const VERSI_CACHE = 'lapor-k3-v2.1.0';
+const VERSI_CACHE = 'lapor-k3-v2.1.1';
 const BERKAS = ['./', './index.html', './config.js', './css/app.css', './js/qr.js', './js/asisten.js', './js/api.js', './js/intel.js', './js/grafik.js', './js/app.js', './js/modul.js', './js/modul-kerja.js', './js/modul-dok.js',
   './manifest.webmanifest', './icons/ikon-192.png', './icons/ikon-512.png',
   './assets/logo.png', './assets/nama-hse.svg', './assets/nama-hse-putih.svg', './assets/bentenan-tenun.svg', './assets/bentenan-merah.svg', './assets/bentenan-terang.svg', './assets/pita-merah.svg',
@@ -20,7 +20,8 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin === self.location.origin) {
     // Jaringan dulu (agar pembaruan cepat terlihat), cadangan dari cache bila offline
-    e.respondWith(fetch(req).then(res => { if (res.ok) { const salin = res.clone(); caches.open(VERSI_CACHE).then(c => c.put(req, salin)); } return res; })
+    // cache: 'no-cache' = selalu cek versi terbaru ke server (melewati cache HTTP 10 menit GitHub Pages)
+    e.respondWith(fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then(res => { if (res.ok) { const salin = res.clone(); caches.open(VERSI_CACHE).then(c => c.put(req, salin)); } return res; })
       .catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('./index.html'))));
   } else if (req.url === CDN) {
     e.respondWith(caches.match(req).then(r => r || fetch(req).then(res => { const salin = res.clone(); caches.open(VERSI_CACHE).then(c => c.put(req, salin)); return res; })));
