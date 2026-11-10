@@ -167,12 +167,65 @@
         try { return cek(await sb.from('jejak_perubahan').select('pada,aktor,aksi,sebelum,sesudah').eq('tabel', tabel).eq('rec_id', String(id)).order('pada', { ascending: false }).limit(100)); }
         catch (e) { const g = terjemahGalat(e); if (g.belumSiap) return null; throw g; }
       },
+      // ---------- Paginasi sisi server (hitung, filter, cari, urut, rentang tanggal di basis data) ----------
+      async halaman(tabel, o) {
+        if (!TABEL_HALAMAN.includes(tabel)) throw new Error('Tabel tidak dikenal');
+        o = o || {}; const ukuran = Math.min(100, Math.max(1, o.ukuran || 25)), hal = Math.max(1, o.halaman || 1);
+        let q = sb.from(tabel).select(o.kolom || (tabel === 'laporan' ? KOLOM_LAPORAN : '*'), { count: 'exact' });
+        q = terapkanFilter(q, o);
+        q = q.order(o.urut || 'dibuat_pada', { ascending: !!o.naik, nullsFirst: false });
+        if ((o.urut || 'dibuat_pada') !== 'id' && tabel !== 'kegiatan_peserta') q = q.order('id', { ascending: true });
+        try { const r = await q.range((hal - 1) * ukuran, hal * ukuran - 1); if (r.error) throw r.error; return { baris: r.data || [], total: r.count || 0, halaman: hal, ukuran }; }
+        catch (e) { throw terjemahGalat(e); }
+      },
+      async semuaTersaring(tabel, o) {
+        const out = []; for (let hal = 1; hal <= 50; hal++) { const r = await this.halaman(tabel, Object.assign({}, o, { halaman: hal, ukuran: 100 })); out.push(...r.baris); if (out.length >= r.total || !r.baris.length) break; }
+        return out;
+      },
+      async ambilSatu(tabel, id) { if (!TABEL_HALAMAN.includes(tabel)) throw new Error('Tabel tidak dikenal'); try { return cek(await sb.from(tabel).select(tabel === 'laporan' ? KOLOM_LAPORAN : '*').eq('id', id).maybeSingle()); } catch (e) { throw terjemahGalat(e); } },
+      async simpanBaris(tabel, d) {
+        if (!TABEL_TULIS.includes(tabel)) throw new Error('Tabel tidak dikenal');
+        const data = Object.assign({}, d); ['dibuat_oleh', 'dibuat_pada', 'diperbarui_pada', 'nomor'].forEach(k => delete data[k]);
+        try {
+          if (data.id !== undefined && data.id !== null) { const id = data.id; delete data.id; return cek(await sb.from(tabel).update(data).eq('id', id).select().single()); }
+          delete data.id; return cek(await sb.from(tabel).insert(data).select().single());
+        } catch (e) { throw terjemahGalat(e); }
+      },
+      async hapusBaris(tabel, id) { if (!['kegiatan_peserta', 'push_langganan'].includes(tabel)) throw new Error('Tidak diizinkan'); try { cek(await sb.from(tabel).delete().eq('id', id)); } catch (e) { throw terjemahGalat(e); } },
+      async daftarDari(tabel, kolom, nilai, urut) { if (!TABEL_HALAMAN.includes(tabel)) throw new Error('Tabel tidak dikenal'); try { return cek(await sb.from(tabel).select('*').eq(kolom, nilai).order(urut || 'id').limit(500)); } catch (e) { throw terjemahGalat(e); } },
+      izinProses: (id, aksi, catatan, data) => panggil('izin_proses', { p_id: id, p_aksi: aksi, p_catatan: catatan || '', p_data: data || {} }),
+      izinRingkas: (dari, sampai) => panggil('izin_ringkas', { p_dari: dari || null, p_sampai: sampai || null }),
+      kegiatanRingkas: (dari, sampai) => panggil('kegiatan_ringkas', { p_dari: dari || null, p_sampai: sampai || null }),
+      kegiatanHadir: kode => panggil('kegiatan_hadir', { p_kode: kode }),
+      kegiatanKode: id => panggil('kegiatan_kode', { p_id: id }),
+      daftarSupervisor: () => panggil('daftar_supervisor'),
+      daftarRekan: (q, unit) => panggil('daftar_rekan', { p_q: q || '', p_unit: unit || null }),
+      async jenisIzin() { try { return cek(await sb.from('jenis_izin').select('*').order('urutan')); } catch (e) { throw terjemahGalat(e); } },
+      async simpanJenisIzin(j) { try { cek(await sb.from('jenis_izin').upsert(j)); } catch (e) { throw terjemahGalat(e); } },
+      daftarPenggunaHalaman: (q, status, peran, ukuran, mulai) => panggil('daftar_pengguna_halaman', { p_q: q || '', p_status: status || '', p_peran: peran || '', p_batas: ukuran || 25, p_mulai: mulai || 0 }),
+      tandaiDibaca: ids => panggil('notif_tandai_dibaca', { p_ids: ids && ids.length ? ids : null }),
+      async preferensiNotif() { const id = await uid(); try { return cek(await sb.from('preferensi_notifikasi').select('*').eq('profil_id', id).maybeSingle()) || { profil_id: id, email: true, push: false, kategori_mati: [] }; } catch (e) { throw terjemahGalat(e); } },
+      async simpanPreferensiNotif(p) { const id = await uid(); try { cek(await sb.from('preferensi_notifikasi').upsert(Object.assign({}, p, { profil_id: id, diperbarui_pada: new Date().toISOString() }))); } catch (e) { throw terjemahGalat(e); } },
+      async simpanLanggananPush(s) { try { cek(await sb.from('push_langganan').upsert({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, { onConflict: 'endpoint' })); } catch (e) { throw terjemahGalat(e); } },
+      async hapusLanggananPush(endpoint) { try { cek(await sb.from('push_langganan').delete().eq('endpoint', endpoint)); } catch (e) { throw terjemahGalat(e); } },
       sinkronRingkas: () => panggil('sinkron_ringkas'),
       sinkronToken: t => panggil('sinkron_atur_token', { p_token: t }),
       sinkronUlang: (tabel, gagal) => panggil('sinkron_antre_ulang', { p_tabel: tabel || null, p_hanya_gagal: !!gagal })
     };
   }
   const MODUL = ['jsa', 'inspeksi', 'pemantauan'];
+  const TABEL_HALAMAN = ['laporan', 'jsa', 'inspeksi', 'pemantauan', 'dokumen', 'investigasi', 'capa', 'izin_kerja', 'izin_jurnal', 'kegiatan', 'kegiatan_peserta', 'notifikasi', 'tindak_lanjut'];
+  const TABEL_TULIS = ['investigasi', 'capa', 'izin_kerja', 'kegiatan', 'kegiatan_peserta'];
+  // Filter generik → kueri Supabase. f: [[kolom, op, nilai]] dengan op eq|neq|in|gte|lte|is
+  function terapkanFilter(q, o) {
+    (o.filter || []).forEach(([k, op, v]) => { if (v === '' || v === undefined || v === null && op !== 'is') return; q = op === 'in' ? q.in(k, v) : op === 'is' ? q.is(k, v) : q[op](k, v); });
+    if (o.cari && o.cari.teks && o.cari.teks.trim()) {
+      const t = o.cari.teks.trim().replace(/[%_,()*\\]/g, ' ').trim().slice(0, 80);
+      if (t) q = o.cari.kolom.length === 1 ? q.ilike(o.cari.kolom[0], '%' + t.toLowerCase() + '%') : q.or(o.cari.kolom.map(k => k + '.ilike.*' + t + '*').join(','));
+    }
+    if (o.rentang) { if (o.rentang.dari) q = q.gte(o.rentang.kolom, o.rentang.dari); if (o.rentang.sampai) q = q.lte(o.rentang.kolom, o.rentang.kolom.endsWith('_pada') || o.rentang.kolom === 'mulai' ? o.rentang.sampai + 'T23:59:59' : o.rentang.sampai); }
+    return q;
+  }
 
   // ===================== MODE DEMO (data contoh di HP) =====================
   function backendDemo() {
@@ -320,6 +373,7 @@
       db.riwayatAI = []; db.bulanan = []; db.v2 = true; simpan();
     }
     const MODUL_DEMO = { jsa: 'jsa', inspeksi: 'inspeksi', pemantauan: 'pemantauan' };
+    const butuhSupabase = () => { const g = new Error('Fitur ini memerlukan basis data Supabase dan tidak tersedia di mode demo.'); g.belumSiap = true; return g; };
     function bolehBacaModul(t, x) {
       const p = saya(); if (!p) return false; if (p.peran === 'k3rs') return true;
       if (t === 'pemantauan') return x.unit_id === p.unit_id && (x.jenis === 'lingkungan' || p.peran === 'pj_unit');
@@ -552,6 +606,23 @@
       },
       async arsipBulanan() { return db.bulanan || []; },
       async buatLaporanBulanan(awal) { if (!k3rs()) tolak('Hanya K3RS'); const d = await this.ringkasanBulanan(awal); db.bulanan = (db.bulanan || []).filter(x => x.periode !== String(awal).slice(0, 10)); db.bulanan.unshift({ periode: String(awal).slice(0, 10), data: d, dibuat_pada: new Date().toISOString(), dibuat_oleh: saya().id, status: 'selesai' }); simpan(); return d; },
+      // Paginasi demo: hanya untuk daftar laporan (data contoh di HP). Modul baru memerlukan Supabase.
+      async halaman(tabel, o) {
+        if (tabel !== 'laporan') throw butuhSupabase();
+        o = o || {}; let x = db.laporan.filter(boleh).map(bersih);
+        (o.filter || []).forEach(([k, op, v]) => { if (v === '' || v == null) return; x = x.filter(l => op === 'eq' ? String(l[k]) === String(v) : op === 'in' ? v.map(String).includes(String(l[k])) : op === 'gte' ? l[k] >= v : op === 'lte' ? l[k] <= v : op === 'neq' ? String(l[k]) !== String(v) : true); });
+        if (o.cari && o.cari.teks) { const t = o.cari.teks.toLowerCase(); x = x.filter(l => (l.nomor + ' ' + l.lokasi + ' ' + l.uraian).toLowerCase().includes(t)); }
+        if (o.rentang) x = x.filter(l => (!o.rentang.dari || l[o.rentang.kolom] >= o.rentang.dari) && (!o.rentang.sampai || String(l[o.rentang.kolom]).slice(0, 10) <= o.rentang.sampai));
+        const k = o.urut || 'dibuat_pada'; x.sort((a, b) => (a[k] == null) - (b[k] == null) || (String(a[k]) < String(b[k]) ? -1 : String(a[k]) > String(b[k]) ? 1 : 0) * (o.naik ? 1 : -1));
+        const u = o.ukuran || 25, hal = o.halaman || 1; return { baris: x.slice((hal - 1) * u, hal * u), total: x.length, halaman: hal, ukuran: u };
+      },
+      async semuaTersaring(tabel, o) { return (await this.halaman(tabel, Object.assign({}, o, { halaman: 1, ukuran: 1e6 }))).baris; },
+      async daftarPenggunaHalaman(q, status, peran, ukuran, mulai) { const P = await this.daftarPengguna(); const t = (q || '').toLowerCase(); const x = P.filter(u => (!t || (u.nama + ' ' + u.email).toLowerCase().includes(t)) && (!status || (status === 'aktif') === u.aktif) && (!peran || u.peran === peran)); return { total: x.length, baris: x.slice(mulai || 0, (mulai || 0) + (ukuran || 25)) }; },
+      ambilSatu: async () => { throw butuhSupabase(); }, simpanBaris: async () => { throw butuhSupabase(); }, hapusBaris: async () => { throw butuhSupabase(); }, daftarDari: async () => { throw butuhSupabase(); },
+      izinProses: async () => { throw butuhSupabase(); }, izinRingkas: async () => { throw butuhSupabase(); }, kegiatanRingkas: async () => { throw butuhSupabase(); }, kegiatanHadir: async () => { throw butuhSupabase(); },
+      kegiatanKode: async () => { throw butuhSupabase(); }, daftarSupervisor: async () => { throw butuhSupabase(); }, daftarRekan: async () => { throw butuhSupabase(); }, jenisIzin: async () => { throw butuhSupabase(); },
+      simpanJenisIzin: async () => { throw butuhSupabase(); }, tandaiDibaca: async () => { throw butuhSupabase(); }, preferensiNotif: async () => { throw butuhSupabase(); }, simpanPreferensiNotif: async () => { throw butuhSupabase(); },
+      simpanLanggananPush: async () => { throw butuhSupabase(); }, hapusLanggananPush: async () => { throw butuhSupabase(); },
       async jejak(tabel, id) { if (!k3rs()) return []; return (db.jejak || []).filter(j => j.tabel === tabel && j.rec_id === id); },
       async sinkronRingkas() { if (!k3rs()) tolak('Hanya K3RS'); return { token_terpasang: false, per_status: {}, gagal_terakhir: [], log: [], demo: true }; },
       async sinkronToken() { tolak('Sinkronisasi Google Sheets hanya tersedia di mode Supabase'); },

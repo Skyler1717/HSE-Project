@@ -1033,7 +1033,7 @@
 
   // Alat bantu untuk modul halaman tambahan (js/modul.js)
   window.K3App = { S, API, h, ikon, IK, badge, badgeStatus, badgeTingkat, tombol, sibuk, bidang, pilih, toast, konfirmasi, tampil, halaman, kosong, pergi, peran, namaUnit, kat, ikonKat, tingkat, kelasTingkat,
-    tgl, LS, SS, PERAN, JENIS, STATUS, LEVEL, ambilLaporan, levelRisiko: s => { const k = kelasTingkat(s); return k === 'rk-x' ? -1 : +k.slice(3); }, unduh, keCSV, KUNCI_DRAF, kunciMerek, lambang, terapkanTema, RUTE, HAK, jalankan, inisial };
+    tgl, LS, SS, PERAN, JENIS, STATUS, LEVEL, ambilLaporan, daftarLaporanEl: (x, k) => daftar(x, k), paramHash, kecilkanFoto, QR, levelRisiko: s => { const k = kelasTingkat(s); return k === 'rk-x' ? -1 : +k.slice(3); }, unduh, keCSV, KUNCI_DRAF, kunciMerek, lambang, terapkanTema, RUTE, HAK, jalankan, inisial };
 
   async function mulai() {
     terapkanTema();

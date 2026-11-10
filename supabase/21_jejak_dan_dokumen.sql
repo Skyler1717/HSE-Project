@@ -24,7 +24,7 @@ create index if not exists jejak_rec_idx on public.jejak_perubahan(tabel, rec_id
 create or replace function public.trg_jejak() returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare
-  rahasia text[] := array['pelapor_id','kode_lacak_hash','id_klien','foto_path','bukti_foto_path','diperbarui_pada','tsv'];
+  rahasia text[] := array['pelapor_id','kode_lacak_hash','id_klien','foto_path','bukti_foto_path','diperbarui_pada','tsv','cari','kode_hadir'];
   a jsonb; b jsonb; s jsonb := '{}'; t jsonb := '{}'; k text; r jsonb; aktor uuid := auth.uid();
 begin
   if tg_op <> 'INSERT' then a := to_jsonb(old); end if;
