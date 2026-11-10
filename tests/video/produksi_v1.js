@@ -4,8 +4,8 @@ const fs = require('fs'), path = require('path');
 const { chromium } = require('playwright');
 const { execFileSync } = require('child_process');
 const R = require('./lib-rekam.js'), L = require('../browser/lib-supabase.js');
-const DIR = process.argv[2], OUT = path.join(DIR, 'klip', 'v1'); fs.mkdirSync(OUT, { recursive: true });
-const G = JSON.parse(fs.readFileSync(path.join(DIR, 'audio', 'v1', 'garis_waktu.json')));
+const DIR = process.argv[2], OUT = path.join(DIR, process.env.KLIP || 'klip', 'v1'); fs.mkdirSync(OUT, { recursive: true });
+const G = JSON.parse(fs.readFileSync(path.join(DIR, process.env.AUDIO || 'audio', 'v1', 'garis_waktu.json')));
 const sql = q => execFileSync('psql', ['-d', 'hse_demo', '-tAq', '-c', q]).toString().trim();
 const TRANS = 0.4; // tumpang tindih transisi antaradegan
 const MG = 'file://' + path.join(__dirname, 'mg', 'mg.html') + '?img=' + path.join(DIR, 'mg');

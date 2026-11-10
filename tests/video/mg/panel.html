@@ -32,6 +32,7 @@ html,body{width:1440px;height:810px;overflow:hidden;background:#0b111c;color:#e6
 <script>
 const tunda = ms => new Promise(r => setTimeout(r, ms));
 window.mulai = async d => {
+  const sk = d.skala || 1;
   document.getElementById('j').textContent = d.judul || ''; document.getElementById('js').textContent = d.sub || '';
   document.getElementById('berkas').textContent = d.berkas || '';
   const isi = document.getElementById('isi');
@@ -48,17 +49,17 @@ window.mulai = async d => {
       g.style.transform = 'translateY(' + (-y) + 'px)';
       isi.classList.add('redup'); g.querySelectorAll('.baris').forEach((b, i) => b.classList.toggle('fokus', i >= ia && i <= ib));
       lab.classList.remove('on');
-      if (f.label) { await tunda(700); lab.textContent = f.label; const yb = (ib + 1) * lb - y + 12; lab.style.top = Math.min(tinggiIsi - 70, Math.max(10, yb)) + 'px'; lab.classList.add('on'); }
+      if (f.label) { await tunda(700 * sk); lab.textContent = f.label; const yb = (ib + 1) * lb - y + 12; lab.style.top = Math.min(tinggiIsi - 70, Math.max(10, yb)) + 'px'; lab.classList.add('on'); }
     }
   } else if (d.mode === 'term') {
     const t = document.createElement('div'); t.className = 'term'; isi.append(t);
     for (const blok of d.blok) {
       const p = document.createElement('div'); p.innerHTML = '<span class="p">$ </span><span class="c"></span>'; t.append(p);
-      for (const ch of blok.perintah) { p.lastChild.textContent += ch; await tunda(28); }
-      await tunda(350);
+      for (const ch of blok.perintah) { p.lastChild.textContent += ch; await tunda(28 * sk); }
+      await tunda(350 * sk);
       const o = document.createElement('div'); t.append(o);
-      for (const baris of blok.keluaran.split('\n')) { const s = document.createElement('div'); s.textContent = baris; if (/LULUS|PASS|✓|selesai|success/i.test(baris)) s.className = 'ok'; if (/belum|BLOCKED|FAIL/i.test(baris)) s.className = 'peringatan'; o.append(s); await tunda(blok.jeda || 60); }
-      await tunda(blok.henti || 500);
+      for (const baris of blok.keluaran.split('\n')) { const s = document.createElement('div'); s.textContent = baris; if (/LULUS|PASS|✓|selesai|success/i.test(baris)) s.className = 'ok'; if (/belum|BLOCKED|FAIL/i.test(baris)) s.className = 'peringatan'; o.append(s); await tunda((blok.jeda || 60) * sk); }
+      await tunda((blok.henti || 500) * sk);
     }
     const k = document.createElement('span'); k.className = 'kursor'; t.append(k);
   }

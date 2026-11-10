@@ -1,0 +1,348 @@
+1
+00:00:00,250 --> 00:00:05,326
+Setiap aplikasi yang berguna bertumpu pada
+struktur data, aturan bisnis, integrasi,
+
+2
+00:00:05,366 --> 00:00:06,626
+dan kendali akses.
+
+3
+00:00:06,756 --> 00:00:11,564
+Mari melihat bagian dalam HSE Project,
+langsung dari kode sumber dan basis datanya.
+
+4
+00:00:12,064 --> 00:00:15,791
+Antarmuka dibangun dengan HTML,
+CSS, dan JavaScript murni,
+
+5
+00:00:15,831 --> 00:00:19,943
+tanpa framework atau proses build,
+dihosting di GitHub Pages.
+
+6
+00:00:20,072 --> 00:00:23,093
+Sebagai Progressive Web App,
+aplikasi ini dapat dipasang di ponsel.
+
+7
+00:00:23,223 --> 00:00:24,633
+Backend-nya Supabase:
+
+8
+00:00:24,673 --> 00:00:29,190
+basis data PostgreSQL dengan API
+REST otomatis, login multifaktor,
+
+9
+00:00:29,230 --> 00:00:31,451
+dan penyimpanan berkas privat.
+
+10
+00:00:31,581 --> 00:00:35,964
+Integrasinya meliputi Google Apps Script
+untuk Sheets, Open-Meteo untuk cuaca,
+
+11
+00:00:36,004 --> 00:00:37,968
+dan pembaca dokumen di peramban.
+
+12
+00:00:38,468 --> 00:00:40,617
+Semuanya dimulai dari index.html,
+
+13
+00:00:40,657 --> 00:00:46,115
+yang memuat konfigurasi dan modul di bawah
+kebijakan keamanan konten yang ketat.
+
+14
+00:00:46,245 --> 00:00:48,098
+Routing memakai hash pada alamat:
+
+15
+00:00:48,138 --> 00:00:53,222
+tabel rute memetakan alamat ke halaman,
+dan tabel hak menentukan peran yang diizinkan.
+
+16
+00:00:53,352 --> 00:00:55,975
+Fungsi kecil membangun
+antarmuka elemen demi elemen,
+
+17
+00:00:56,015 --> 00:00:59,238
+sehingga teks pengguna tidak
+pernah dieksekusi sebagai kode.
+
+18
+00:00:59,368 --> 00:01:04,771
+Semua akses data melewati api.js,
+dalam mode demo atau terhubung ke Supabase.
+
+19
+00:01:05,271 --> 00:01:11,122
+Berikut contoh pelaporan bahaya. Tombol
+kirim tetap nonaktif sampai kategori dipilih.
+
+20
+00:01:11,392 --> 00:01:15,311
+Saat dikirim, peramban memanggil
+fungsi kirim_laporan melalui API,
+
+21
+00:01:15,351 --> 00:01:18,440
+dan server mengembalikan
+nomor laporan yang baru.
+
+22
+00:01:18,940 --> 00:01:22,261
+Aturan penting berjalan di
+basis data, bukan di peramban.
+
+23
+00:01:22,301 --> 00:01:27,641
+Fungsi ini memeriksa peran pengguna, kategori,
+unit, panjang teks, dan identitas pasien.
+
+24
+00:01:27,911 --> 00:01:31,867
+Fungsi ini juga mencegah duplikasi dan
+membuat nomor laporan yang mudah dibaca.
+
+25
+00:01:31,998 --> 00:01:35,780
+Pembacaan sederhana memakai API REST,
+tetapi perubahan status penting,
+
+26
+00:01:35,820 --> 00:01:38,565
+seperti penugasan, penutupan,
+atau pengesahan izin,
+
+27
+00:01:38,605 --> 00:01:42,086
+hanya terjadi lewat fungsi server
+yang menegakkan alur kerja.
+
+28
+00:01:42,215 --> 00:01:45,179
+Trigger kemudian membuat notifikasi,
+mencatat jejak audit,
+
+29
+00:01:45,219 --> 00:01:47,492
+dan mengantrekan data untuk sinkronisasi.
+
+30
+00:01:47,992 --> 00:01:55,315
+Skemanya memiliki 32 tabel, 74 fungsi,
+38 trigger, dan 59 kebijakan Row Level Security.
+
+31
+00:01:55,445 --> 00:01:57,013
+Laporan menjadi pusat.
+
+32
+00:01:57,053 --> 00:02:03,372
+Investigasi merujuk satu laporan kejadian,
+dan CAPA dapat merujuk investigasi, laporan,
+
+33
+00:02:03,412 --> 00:02:05,316
+atau kegiatan pelatihan.
+
+34
+00:02:05,586 --> 00:02:09,482
+Analisis akar masalah disimpan
+sebagai JSON di dalam investigasi,
+
+35
+00:02:09,522 --> 00:02:11,125
+bukan di tabel terpisah.
+
+36
+00:02:11,254 --> 00:02:14,218
+Izin kerja merujuk JSA dan laporan,
+
+37
+00:02:14,258 --> 00:02:18,957
+tetapi JSA belum terhubung
+langsung ke risk register.
+
+38
+00:02:19,087 --> 00:02:23,665
+Kunci unik mencegah duplikasi, misalnya
+dua investigasi aktif untuk satu laporan,
+
+39
+00:02:23,705 --> 00:02:26,363
+dan constraint menjaga data tetap konsisten.
+
+40
+00:02:26,864 --> 00:02:29,095
+Integrasi Google Sheets bersifat satu arah:
+
+41
+00:02:29,135 --> 00:02:33,299
+Supabase tetap menjadi sumber data resmi,
+dan Sheets hanya cermin pelaporan.
+
+42
+00:02:33,429 --> 00:02:34,476
+Setiap sepuluh menit,
+
+43
+00:02:34,516 --> 00:02:38,237
+pemicu waktu menarik antrean perubahan
+melalui fungsi yang diamankan.
+
+44
+00:02:38,367 --> 00:02:41,405
+Baris ditulis berdasarkan ID
+sehingga tidak pernah tergandakan,
+
+45
+00:02:41,445 --> 00:02:43,892
+dan kegagalan dicoba
+ulang hingga sepuluh kali.
+
+46
+00:02:44,022 --> 00:02:45,808
+Kode ini berasal dari repositori;
+
+47
+00:02:45,848 --> 00:02:49,651
+proyek Apps Script produksi tidak
+dapat diperiksa secara langsung.
+
+48
+00:02:50,152 --> 00:02:53,005
+Mari ikuti satu insiden
+dari awal hingga akhir.
+
+49
+00:02:53,045 --> 00:02:55,159
+Petugas masuk dan mengirim laporan,
+
+50
+00:02:55,199 --> 00:02:58,672
+yang divalidasi lalu disimpan
+dengan nomor dan status.
+
+51
+00:02:58,942 --> 00:03:01,967
+Trigger memberi notifikasi
+kepada semua petugas K3,
+
+52
+00:03:02,007 --> 00:03:06,123
+dan tim menyelidiki dengan kronologi,
+5 Why, dan diagram Fishbone.
+
+53
+00:03:06,253 --> 00:03:09,164
+Investigasi tidak dapat diajukan tanpa CAPA,
+
+54
+00:03:09,204 --> 00:03:12,574
+dan harus disetujui oleh
+orang selain ketua tim.
+
+55
+00:03:12,704 --> 00:03:18,339
+Setelah CAPA selesai dan diverifikasi,
+investigasi ditutup dan dasbor diperbarui.
+
+56
+00:03:18,839 --> 00:03:21,311
+Pengguna masuk melalui Supabase Auth,
+
+57
+00:03:21,351 --> 00:03:24,964
+dan admin K3 wajib memakai
+autentikasi multifaktor.
+
+58
+00:03:25,094 --> 00:03:29,825
+Tiga peran, yaitu petugas, PJ unit,
+dan K3RS, ditegakkan oleh Row Level Security,
+
+59
+00:03:29,865 --> 00:03:34,492
+sehingga panggilan API langsung pun
+hanya mengembalikan data yang diizinkan.
+
+60
+00:03:34,622 --> 00:03:37,429
+Identitas pelapor anonim
+tidak pernah dapat dibaca,
+
+61
+00:03:37,469 --> 00:03:40,968
+dan satu-satunya kunci di
+peramban adalah kunci publik anon.
+
+62
+00:03:41,468 --> 00:03:45,071
+Perubahan dikembangkan di cabang
+terpisah, lalu digabung ke main,
+
+63
+00:03:45,111 --> 00:03:47,952
+dan GitHub Pages
+menerbitkannya secara otomatis.
+
+64
+00:03:48,082 --> 00:03:51,185
+Basis data berubah melalui migrasi
+bernomor yang aman dijalankan ulang,
+
+65
+00:03:51,225 --> 00:03:52,703
+masing-masing dengan rollback.
+
+66
+00:03:52,833 --> 00:03:54,450
+Setiap rilis diuji ulang:
+
+67
+00:03:54,490 --> 00:03:59,486
+109 pemeriksaan basis data, 50 skenario
+ujung ke ujung, uji tampilan ponsel,
+
+68
+00:03:59,526 --> 00:04:02,061
+dan uji penerimaan berbasis persona.
+
+69
+00:04:02,190 --> 00:04:05,752
+Notifikasi email dan push,
+matriks risiko sesuai rumah sakit,
+
+70
+00:04:05,792 --> 00:04:09,603
+dan penilaian risiko residual
+masih direncanakan, belum aktif.
+
+71
+00:04:10,104 --> 00:04:13,022
+HSE Project memadukan praktik
+manajemen keselamatan dengan rekayasa
+
+72
+00:04:13,062 --> 00:04:15,331
+perangkat lunak yang jelas
+dan dapat ditelusuri.
+
+73
+00:04:15,461 --> 00:04:17,966
+Arsitekturnya yang mudah dipahami
+memungkinkan aplikasi ini
+
+74
+00:04:18,006 --> 00:04:20,399
+terus berkembang sesuai
+kebutuhan setiap organisasi.

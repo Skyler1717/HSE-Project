@@ -1,0 +1,165 @@
+1
+00:00:00,150 --> 00:00:02,895
+Rumah sakit yang aman mengubah
+apa yang diamati menjadi tindakan.
+
+2
+00:00:03,025 --> 00:00:07,779
+Inilah HSE Project, platform digital
+untuk keselamatan dan kesehatan kerja.
+
+3
+00:00:08,078 --> 00:00:11,409
+Catatan keselamatan sering tersebar di
+formulir dan spreadsheet yang terpisah.
+
+4
+00:00:11,539 --> 00:00:14,368
+Pelaporan lambat,
+dan tindak lanjut sulit dipantau.
+
+5
+00:00:14,498 --> 00:00:17,356
+HSE Project menyatukan
+semuanya dalam satu alur kerja.
+
+6
+00:00:17,656 --> 00:00:20,336
+Aplikasi ini berjalan di peramban
+apa pun, di komputer maupun ponsel.
+
+7
+00:00:20,466 --> 00:00:23,869
+Pelaporan, penilaian risiko,
+dan tindak lanjut memakai data yang sama.
+
+8
+00:00:24,170 --> 00:00:26,192
+Melaporkan bahaya cukup beberapa ketukan,
+
+9
+00:00:26,232 --> 00:00:29,903
+dan formulir menahan nomor rekam
+medis pasien sebelum laporan dikirim.
+
+10
+00:00:30,033 --> 00:00:32,303
+Di risk register,
+tim K3 menilai setiap risiko,
+
+11
+00:00:32,343 --> 00:00:35,000
+lalu menetapkan penanggung
+jawab dan tenggat waktu.
+
+12
+00:00:35,300 --> 00:00:38,272
+Job Safety Analysis
+menyusun langkah dan bahaya,
+
+13
+00:00:38,312 --> 00:00:41,976
+serta menandai pengendalian
+yang hanya mengandalkan APD.
+
+14
+00:00:42,106 --> 00:00:44,238
+Inspeksi menghitung skor
+kepatuhan secara otomatis,
+
+15
+00:00:44,278 --> 00:00:46,452
+dan izin kerja tidak dapat
+dimulai sebelum disahkan.
+
+16
+00:00:46,492 --> 00:00:49,537
+Setiap petugas di unit dapat
+menghentikan pekerjaan yang tidak aman.
+
+17
+00:00:49,837 --> 00:00:52,189
+Insiden langsung memberi
+notifikasi kepada tim K3.
+
+18
+00:00:52,319 --> 00:00:55,972
+Investigasi memakai kronologi,
+analisis 5 Why, dan diagram Fishbone,
+
+19
+00:00:56,012 --> 00:00:59,149
+lalu berakhir pada tindakan
+korektif yang diverifikasi.
+
+20
+00:00:59,449 --> 00:01:03,704
+Toolbox meeting dan pelatihan mencatat
+kehadiran dengan kode QR, nilai tes,
+
+21
+00:01:03,744 --> 00:01:04,753
+dan kompetensi.
+
+22
+00:01:04,883 --> 00:01:09,040
+SOP berada dalam pengendalian dokumen,
+dan peran pengguna mengatur hak akses.
+
+23
+00:01:09,339 --> 00:01:11,362
+HSE Intelligence mengungkap pola risiko,
+
+24
+00:01:11,402 --> 00:01:14,286
+dan pencarian cerdas menjawab
+pertanyaan sehari-hari.
+
+25
+00:01:14,416 --> 00:01:17,929
+Keduanya berbasis aturan,
+bukan AI generatif.
+
+26
+00:01:18,229 --> 00:01:21,449
+Yang membedakan HSE Project
+adalah satu alur yang terhubung,
+
+27
+00:01:21,489 --> 00:01:24,682
+dari laporan pertama hingga
+tindakan perbaikan terakhir.
+
+28
+00:01:24,812 --> 00:01:28,914
+Tanpa instalasi, akses ditegakkan di
+basis data, riwayat perubahan lengkap,
+
+29
+00:01:28,954 --> 00:01:31,203
+dan salinan opsional ke Google Sheets.
+
+30
+00:01:31,334 --> 00:01:33,411
+Aplikasi ini dibangun untuk
+berkembang bersama operasional Anda.
+
+31
+00:01:33,710 --> 00:01:37,856
+Dasbor dan laporan bulanan menampilkan tindakan
+yang terbuka dan terlambat secara sekilas.
+
+32
+00:01:37,986 --> 00:01:41,059
+Informasi yang terstruktur mendukung
+keputusan keselamatan yang lebih tepat.
+
+33
+00:01:41,358 --> 00:01:44,712
+Terstruktur, terhubung,
+dan berfokus pada perbaikan berkelanjutan.
+
+34
+00:01:44,842 --> 00:01:49,261
+HSE Project. Keselamatan lebih cerdas.
+Pengelolaan lebih baik. Tempat kerja lebih aman.

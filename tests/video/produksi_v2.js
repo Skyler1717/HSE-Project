@@ -4,11 +4,11 @@ const fs = require('fs'), path = require('path');
 const { chromium } = require('playwright');
 const { execFileSync } = require('child_process');
 const R = require('./lib-rekam.js');
-const DIR = process.argv[2], OUT = path.join(DIR, 'klip', 'v2'); fs.mkdirSync(OUT, { recursive: true });
+const DIR = process.argv[2], OUT = path.join(DIR, process.env.KLIP || 'klip', 'v2'); fs.mkdirSync(OUT, { recursive: true });
 const ROOT = path.resolve(__dirname, '../..');
 const hljs = require(path.join(DIR, 'hl', 'node_modules', 'highlight.js'));
 const HLCSS = path.join(DIR, 'hl', 'node_modules', 'highlight.js', 'styles', 'github-dark.css');
-const G = JSON.parse(fs.readFileSync(path.join(DIR, 'audio', 'v2', 'garis_waktu.json')));
+const G = JSON.parse(fs.readFileSync(path.join(DIR, process.env.AUDIO || 'audio', 'v2', 'garis_waktu.json')));
 const TERM = f => fs.readFileSync(path.join(DIR, 'term', f), 'utf8').replace(/\s+$/, '');
 const TRANS = 0.4;
 const MG = path.join(__dirname, 'mg', 'mg.html') + '?img=' + path.join(DIR, 'mg'), PANEL = path.join(__dirname, 'mg', 'panel.html');
@@ -41,7 +41,7 @@ function kode(berkas, a, b, bahasa) {
       const f = path.join(OUT, id + '_' + i + '.mp4'); const tLokal = tt.map(x => x - mulaiSeg);
       try {
         if (pt.mg) { const p = await R.halamanLokal(b, MG + (pt.judul ? '&judul=' + encodeURIComponent(pt.judul) : '')); await R.rekam(p, f, dur, () => p.evaluate(c => mulai(c), { a: pt.mg, t: pt.t || tLokal })); await p.context().close(); }
-        else if (pt.panel) { const p = await R.halamanLokal(b, PANEL); await p.addStyleTag({ path: HLCSS }); await R.rekam(p, f, dur, () => { p.evaluate(d => { mulai(d); }, pt.panel); }); await p.context().close(); }
+        else if (pt.panel) { const p = await R.halamanLokal(b, PANEL); await p.addStyleTag({ path: HLCSS }); const d = Object.assign({ skala: SK }, pt.panel); await R.rekam(p, f, dur, () => { p.evaluate(d => { mulai(d); }, d); }); await p.context().close(); }
         else { const p = await akun(pt.akun); if (pt.rute) { await R.buka(p, pt.rute); await R.tunggu(900); } if (pt.siapkan) await pt.siapkan(p); await R.rekam(p, f, dur, async () => { try { await pt.aksi(p); } catch (e) { console.log('  ! aksi', id, i, e.message.split('\n')[0]); } }); await R.judulLepas(p).catch(() => {}); }
         bag.push(f);
       } catch (e) { console.log('  ! potongan', id, i, e.message.split('\n')[0]); }
@@ -51,7 +51,8 @@ function kode(berkas, a, b, bahasa) {
     execFileSync('ffmpeg', ['-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', daftar, '-c', 'copy', path.join(OUT, id + '.mp4')]);
     console.log('adegan', id, total.toFixed(1), 'dtk');
   }
-  const K = (f, a, b, bhs, judul, sub, fokus) => Object.assign(kode(f, a, b, bhs), { judul, sub, fokus });
+  const SK = +(process.env.TEMPO || 1);
+  const K = (f, a, b, bhs, judul, sub, fokus) => Object.assign(kode(f, a, b, bhs), { judul, sub, skala: SK, fokus: fokus.map(x => Object.assign({}, x, { t: x.t * SK })) });
 
   await adegan('v2s1', [{ mg: 'judul2' }]);
   await adegan('v2s2', [{ mg: 'teknologi' }]);
@@ -62,7 +63,7 @@ function kode(berkas, a, b, bahasa) {
     { panel: K('js/api.js', 1, 12, 'javascript', 'Satu lapisan data, dua mode', 'js/api.js', [{ t: .3, a: 1, b: 5, label: 'Mode Supabase (data nyata) atau mode demo' }, { t: 5, a: 9, b: 9, label: 'supabase-js 2.45.4 dimuat dari CDN' }]) }]);
   await adegan('v2s3b', [
     { akun: 'petugas.kesling', rute: '/lapor', siapkan: async p => {
-        await p.evaluate(() => { const o = document.createElement('div'); o.id = '__net'; o.style.cssText = 'position:fixed;right:18px;top:90px;width:430px;max-height:640px;overflow:hidden;z-index:2147483640;background:rgba(13,17,23,.96);color:#e6edf3;border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.45);font:13.5px/1.45 DejaVu Sans Mono,monospace;padding:14px 16px;white-space:pre-wrap'; o.textContent = 'Jaringan (permintaan ke API)\n— menunggu —'; document.documentElement.appendChild(o); });
+        await p.evaluate(() => { const o = document.createElement('div'); o.id = '__net'; o.style.cssText = 'position:fixed;right:18px;top:170px;width:430px;max-height:560px;overflow:hidden;z-index:2147483640;background:rgba(13,17,23,.96);color:#e6edf3;border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.45);font:13.5px/1.45 DejaVu Sans Mono,monospace;padding:14px 16px;white-space:pre-wrap'; o.textContent = 'Jaringan (permintaan ke API)\n— menunggu —'; document.documentElement.appendChild(o); });
         p.removeAllListeners('response');
         p.on('response', async r => { const u = r.url(); if (!/\/rest\/v1\/rpc\/kirim_laporan/.test(u)) return; let isi = ''; try { isi = JSON.stringify(JSON.parse(r.request().postData() || '{}'), null, 1); } catch (e) { } let res = ''; try { res = await r.text(); } catch (e) { }
           await p.evaluate(([m, isi, st, res]) => { const o = document.getElementById('__net'); if (o) o.textContent = 'POST /rest/v1/rpc/kirim_laporan\n\nIsi permintaan (JSON):\n' + isi + '\n\nRespons ' + st + ':\n' + res; }, ['POST', isi, r.status(), res]).catch(() => {}); });
@@ -91,7 +92,7 @@ function kode(berkas, a, b, bahasa) {
     { sampai: 1, mg: 'aman' },
     { sampai: 2, akun: 'petugas.farmasi', rute: '/semua', aksi: async p => { await R.judulBawah(p, 'Uji hak akses', 'Akun petugas membuka risk register'); await R.gerak(p, 'main', 900); await R.sorot(p, 'main .kosong, main .kartu'); await R.tunggu(2500);
       const n = await p.evaluate(() => window.K3Api.halaman('laporan', {}).then(r => r.total)); await R.sorotLepas(p);
-      await p.evaluate(n => { const o = document.createElement('div'); o.style.cssText = 'position:fixed;right:30px;top:120px;width:520px;z-index:2147483640;background:rgba(13,17,23,.96);color:#e6edf3;border-radius:12px;font:16px/1.5 DejaVu Sans Mono,monospace;padding:18px 20px;white-space:pre-wrap;box-shadow:0 20px 50px rgba(0,0,0,.45)'; o.textContent = '> K3Api.halaman("laporan")   // panggil API langsung\n\ntotal: ' + n + '\n\nRLS hanya mengembalikan laporan milik petugas ini.'; document.documentElement.appendChild(o); }, n);
+      await p.evaluate(n => { const o = document.createElement('div'); o.style.cssText = 'position:fixed;right:30px;top:180px;width:520px;z-index:2147483640;background:rgba(13,17,23,.96);color:#e6edf3;border-radius:12px;font:16px/1.5 DejaVu Sans Mono,monospace;padding:18px 20px;white-space:pre-wrap;box-shadow:0 20px 50px rgba(0,0,0,.45)'; o.textContent = '> K3Api.halaman("laporan")   // panggil API langsung\n\ntotal: ' + n + '\n\nRLS hanya mengembalikan laporan milik petugas ini.'; document.documentElement.appendChild(o); }, n);
       await R.judulBawah(p, 'Row Level Security', 'Pembatasan di server, bukan hanya tombol'); } },
     { panel: K('supabase/01_setup.sql', 543, 550, 'pgsql', 'Hak baca per kolom', 'supabase/01_setup.sql', [{ t: .3, a: 546, b: 549, label: 'pelapor_id, kode_lacak_hash, id_klien tidak diberikan' }]) }]);
   await adegan('v2s9', [

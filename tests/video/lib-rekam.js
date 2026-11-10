@@ -4,7 +4,9 @@ const fs = require('fs'), path = require('path');
 const { execFileSync } = require('child_process');
 const L = require('../browser/lib-supabase.js');
 const LEBAR = 1440, TINGGI = 810, SKALA = 1920 / 1440;
-const tunggu = ms => new Promise(r => setTimeout(r, ms));
+const tidur = ms => new Promise(r => setTimeout(r, ms));
+const TEMPO = +(process.env.TEMPO || 1);          // < 1 mempercepat aksi layar (bukan durasi adegan)
+const tunggu = ms => tidur(ms * TEMPO);
 
 // Skrip yang disuntik ke setiap halaman: kursor, riak klik, zoom, lower third.
 const SUNTIK = `(() => {
@@ -15,10 +17,10 @@ const SUNTIK = `(() => {
       #__kursor{position:fixed;left:0;top:0;width:26px;height:26px;z-index:2147483647;pointer-events:none;transform:translate(-100px,-100px);transition:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
       .__riak{position:fixed;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;border:3px solid #B8202E;z-index:2147483646;pointer-events:none;animation:__riak .6s ease-out forwards}
       @keyframes __riak{from{opacity:.9;transform:scale(.4)}to{opacity:0;transform:scale(3.2)}}
-      #__lt{position:fixed;left:48px;bottom:44px;z-index:2147483645;pointer-events:none;font-family:Inter,system-ui,sans-serif;opacity:0;transform:translateX(-30px);transition:opacity .5s ease,transform .5s ease}
+      #__lt{position:fixed;right:34px;top:84px;text-align:right;z-index:2147483645;pointer-events:none;font-family:Inter,system-ui,sans-serif;opacity:0;transform:translateX(30px);transition:opacity .5s ease,transform .5s ease}
       #__lt.on{opacity:1;transform:none}
-      #__lt .b1{display:inline-block;background:#B8202E;color:#fff;font-weight:700;font-size:26px;padding:10px 20px 10px 18px;border-radius:6px 6px 6px 0;letter-spacing:.2px}
-      #__lt .b2{display:block;width:max-content;max-width:900px;background:rgba(17,24,39,.92);color:#fff;font-size:19px;padding:8px 18px;border-radius:0 6px 6px 6px}
+      #__lt .b1{display:inline-block;background:#B8202E;color:#fff;font-weight:700;font-size:22px;padding:8px 18px;border-radius:8px 8px 0 8px;letter-spacing:.2px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+      #__lt .b2{display:block;width:max-content;max-width:560px;margin-left:auto;background:rgba(17,24,39,.92);color:#fff;font-size:16px;padding:7px 16px;border-radius:8px 0 8px 8px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
       #__sorot{position:fixed;z-index:2147483644;pointer-events:none;border:3px solid #F5B700;border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.28);opacity:0;transition:all .45s ease}
       #__sorot.on{opacity:1}
       html{scroll-behavior:smooth}\`;
@@ -52,23 +54,26 @@ async function buka(p, rute) { await L.buka(p, rute); await p.evaluate(SUNTIK).c
 
 // Gerak kursor halus (ease-in-out) ke elemen/koordinat
 async function gerak(p, target, ms = 900) {
+  ms *= TEMPO;
   let x, y;
   if (typeof target === 'string') { const el = p.locator(target).first(); await el.scrollIntoViewIfNeeded().catch(() => {}); const b = await el.boundingBox(); if (!b) throw new Error('tidak ditemukan: ' + target); x = b.x + b.width / 2; y = b.y + b.height / 2; }
   else [x, y] = target;
   const [x0, y0] = posisi, n = Math.max(12, Math.round(ms / 16));
-  for (let i = 1; i <= n; i++) { const t = i / n, e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; await p.mouse.move(x0 + (x - x0) * e, y0 + (y - y0) * e); await tunggu(ms / n); }
+  for (let i = 1; i <= n; i++) { const t = i / n, e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; await p.mouse.move(x0 + (x - x0) * e, y0 + (y - y0) * e); await tidur(ms / n); }
   posisi = [x, y];
 }
 async function klik(p, target, ms) { await gerak(p, target, ms); await tunggu(150); await p.mouse.down(); await tunggu(90); await p.mouse.up(); await tunggu(250); }
-async function ketik(p, target, teks, jeda = 38) { await klik(p, target); await p.keyboard.type(teks, { delay: jeda }); }
-async function gulir(p, dy, ms = 1200) { const n = Math.round(ms / 30); for (let i = 0; i < n; i++) { await p.mouse.wheel(0, dy / n); await tunggu(30); } }
+async function ketik(p, target, teks, jeda = 38) { await klik(p, target); await p.keyboard.type(teks, { delay: Math.max(6, jeda * TEMPO) }); }
+async function gulir(p, dy, ms = 1200) { ms *= TEMPO; const n = Math.max(8, Math.round(ms / 30)); for (let i = 0; i < n; i++) { await p.mouse.wheel(0, dy / n); await tidur(ms / n); } }
 async function zoom(p, selektor, skala = 1.6, ms = 900) {
+  ms *= TEMPO;
   await p.evaluate(([s, k, ms]) => { const h = document.body; let ox = innerWidth / 2, oy = innerHeight / 2;
     if (s) { const el = document.querySelector(s); if (el) { const b = el.getBoundingClientRect(); ox = b.left + b.width / 2; oy = b.top + b.height / 2; } }
     h.style.transition = 'transform ' + ms + 'ms cubic-bezier(.4,0,.2,1)'; h.style.transformOrigin = ox + 'px ' + (oy + scrollY) + 'px'; h.style.transform = 'scale(' + k + ')'; }, [selektor, skala, ms]);
   await tunggu(ms);
 }
-async function zoomLepas(p, ms = 800) { await p.evaluate(ms => { document.body.style.transform = 'none'; }, ms); await tunggu(ms); }
+async function zoomLepas(p, ms = 800) {
+  ms *= TEMPO; await p.evaluate(ms => { document.body.style.transform = 'none'; }, ms); await tunggu(ms); }
 async function sorot(p, selektor, pad = 8) {
   await p.evaluate(([s, pad]) => { const so = document.getElementById('__sorot'), el = document.querySelector(s); if (!so) return; if (!el) { so.classList.remove('on'); return; } const b = el.getBoundingClientRect();
     Object.assign(so.style, { left: (b.left - pad) + 'px', top: (b.top - pad) + 'px', width: (b.width + 2 * pad) + 'px', height: (b.height + 2 * pad) + 'px' }); so.classList.add('on'); }, [selektor, pad]);
@@ -88,11 +93,11 @@ async function rekam(p, keluar, durasi, aksi, opsi = {}) {
   await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: opsi.maxW || 1920, maxHeight: opsi.maxH || 1080, everyNthFrame: 1 });
   // paksa satu bingkai awal
   await p.evaluate(() => { const d = document.createElement('i'); document.documentElement.appendChild(d); requestAnimationFrame(() => d.remove()); });
-  const t0 = Date.now() / 1000; await tunggu(120);
+  const t0 = Date.now() / 1000; await tidur(120);
   await aksi();
-  const sisa = durasi - (Date.now() / 1000 - t0); if (sisa > 0) await tunggu(sisa * 1000);
+  const sisa = durasi - (Date.now() / 1000 - t0); if (sisa > 0) await tidur(sisa * 1000);
   const t1 = Date.now() / 1000;
-  await cdp.send('Page.stopScreencast'); await tunggu(150); await cdp.detach().catch(() => {});
+  await cdp.send('Page.stopScreencast'); await tidur(150); await cdp.detach().catch(() => {});
   if (!bingkai.length) throw new Error('tidak ada bingkai: ' + keluar);
   const awal = bingkai[0][1]; let daftar = '';
   bingkai.forEach(([f, ts], i) => { const akhir = i + 1 < bingkai.length ? bingkai[i + 1][1] : awal + (t1 - t0); daftar += "file '" + f + "'\nduration " + Math.max(0.001, akhir - ts).toFixed(4) + '\n'; });
