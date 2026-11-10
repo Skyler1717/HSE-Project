@@ -1,4 +1,4 @@
-# Laporan QA — HSE Project v2.1 (8 November 2026)
+# Laporan QA — HSE Project v2.2 (10 November 2026)
 
 Dasar pengujian: repositori, PostgreSQL 16 lokal dengan tiruan Supabase, Chromium (Playwright).
 **Tidak diuji langsung:** Supabase produksi, Apps Script produksi, dan situs GitHub Pages. Lingkungan pengujian tidak dapat menjangkau ketiganya; semua permintaan berakhir dengan batas waktu.
@@ -7,11 +7,13 @@ Dasar pengujian: repositori, PostgreSQL 16 lokal dengan tiruan Supabase, Chromiu
 
 | Paket | Hasil |
 |---|---|
-| Basis data (RLS, fungsi, jejak, migrasi aman diulang, rollback) | 39/39 lulus + uji rollback/pasang ulang 20 & 21 |
+| Basis data (RLS, fungsi, jejak, investigasi, CAPA, PTW, kegiatan, notifikasi, paginasi, migrasi aman diulang) | 109/109 lulus + uji rollback/pasang ulang 20, 21, 23 |
+| E2E mode Supabase (aplikasi asli ↔ PostgreSQL + RLS melalui emulator REST) | 50/50 lulus |
+| Logika Edge Function notifikasi (penyedia tiruan) | 17/17 lulus |
 | Apps Script ↔ basis data | 10/10 lulus |
-| Smoke 44 halaman × 3 peran, desktop 1280 px | 0 galat, 0 overflow |
-| Smoke 44 halaman × 3 peran, ponsel 360 px | 0 galat, 0 overflow |
-| E2E | 31/31 lulus |
+| Smoke 51 halaman × 3 peran, desktop 1280 px | 0 galat, 0 overflow |
+| Smoke 51 halaman × 3 peran, ponsel 360 px | 0 galat, 0 overflow |
+| E2E mode demo | 31/31 lulus |
 | Login Supabase (server tiruan) | lulus |
 | Mode Supabase, modul belum aktif | aman, pesan jelas |
 
@@ -30,6 +32,10 @@ Dasar pengujian: repositori, PostgreSQL 16 lokal dengan tiruan Supabase, Chromiu
 | B-09 | P2 | Halaman Pengguna tanpa pencarian/filter | — | Diperbaiki | e2e 13 |
 | B-10 | P3 | Desimal memakai titik | Format bawaan JS | Diperbaiki | e2e |
 | B-11 | P3 | Glyph status ◐ ◑ tidak terbaca | Font tidak memiliki glyph | Diganti → ↻ | visual |
+| B-12 | P1 (kinerja) | Hitung total laporan 1,5 dtk pada 20.000 baris | Fungsi RLS dievaluasi per baris | Kebijakan ditulis ulang dengan subquery `(select …)`; ±600× lebih cepat; kesetaraan hak akses diuji untuk semua peran | db 30, e2e_supabase |
+| B-13 | P1 | Membuat/membaca kegiatan gagal "permission denied" | `select *` menyentuh kolom rahasia `kode_hadir` | Daftar kolom eksplisit `KOLOM_KEGIATAN` | e2e_supabase |
+| B-14 | P2 | Daftar "Perlu investigasi" kosong tanpa pesan saat galat | Galat ditelan | Pesan galat ditampilkan | e2e_supabase |
+| B-15 | P2 | Pengingat terhitung kehilangan tombol "Tandai semua dibaca" di pusat notifikasi baru | Tab baru tidak memakai komponen lama | Komponen dipakai ulang (`isiPengingat`) | e2e 11 |
 
 **Sisa terbuka:** Critical 0 · High 0 (pada kode) · Medium 1 (O-01, perlu pemeriksaan produksi) · Low 0.
 
@@ -37,7 +43,9 @@ Dasar pengujian: repositori, PostgreSQL 16 lokal dengan tiruan Supabase, Chromiu
 
 - **O-01 (Medium, perlu dicek):** Apps Script produksi sebelumnya memuat kode lain (`tarik_`, `tarikSekarang`). Pesan "Token tidak dikenali atau sudah dicabut" berasal dari fungsi di Supabase produksi yang **tidak ada di repositori**. Kemungkinan ada mekanisme sinkron kedua yang dapat menggandakan data. Periksa dengan:
   `select proname from pg_proc where pronamespace = 'public'::regnamespace and prosrc ilike '%tidak dikenali atau sudah dicabut%';`
-- **O-02:** Status migrasi 20/21 dan pg_cron di Supabase produksi belum terverifikasi.
+- **O-02:** Status migrasi 20/21/23 dan pg_cron di Supabase produksi belum terverifikasi.
+- **O-03:** Email & push belum diuji nyata: membutuhkan kunci Resend/VAPID dan deploy Edge Function oleh pemilik proyek (panduan bagian 7). Sampai diuji, saluran ini **tidak** dianggap aktif.
+- **O-04:** `supabase/22_nonaktifkan_ekspor_lama.sql` menunggu hasil langkah 1 & 3 dari pemilik proyek.
 - **O-03:** Versi yang tampil di GitHub Pages belum terverifikasi dari lingkungan ini.
 
 ## 4. Skor kualitas (skala 1–5, bukti di atas)

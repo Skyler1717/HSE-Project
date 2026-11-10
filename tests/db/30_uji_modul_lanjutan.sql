@@ -165,6 +165,9 @@ select pg_temp.harus(jsonb_array_length(notif_ambil(500)) = :diambil, 'pengirima
 select notif_lapor((select jsonb_agg(jsonb_build_object('kirim_id', id, 'status', 'terkirim')) from notifikasi_kirim));
 update notifikasi_kirim set diproses_pada = now() - interval '1 day';
 select pg_temp.harus(jsonb_array_length(notif_ambil(500)) = 0 and (select count(*) from notifikasi_kirim where status = 'terkirim') = :diambil, 'yang sudah terkirim tidak pernah dikirim ulang');
+insert into push_langganan(profil_id, endpoint, p256dh, auth) values (:'C', 'https://push.uji/a', 'k', 'a'), (:'C', 'https://push.uji/b', 'k', 'a'), (:'C', 'https://push.uji/c', 'k', 'a');
+select notif_lapor(jsonb_build_array(jsonb_build_object('kirim_id', (select min(id) from notifikasi_kirim), 'status', 'terkirim', 'hapus_endpoint', jsonb_build_array('https://push.uji/a', 'https://push.uji/b'))));
+select pg_temp.harus((select string_agg(endpoint, ',') from push_langganan where endpoint like 'https://push.uji/%') = 'https://push.uji/c', 'langganan push kedaluwarsa (410) dihapus, yang aktif tetap');
 select pg_temp.sebagai(:'C'); set role authenticated;
 select pg_temp.harus((select count(*) from notifikasi where penerima_id <> :'C') = 0, 'pengguna hanya melihat notifikasinya sendiri');
 select pg_temp.harus_gagal('update notifikasi set judul = ''x''', 'notifikasi tidak dapat diubah langsung');

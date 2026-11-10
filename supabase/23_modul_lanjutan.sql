@@ -808,7 +808,9 @@ begin
     if x->>'status' = 'terkirim' then update public.notifikasi_kirim set status = 'terkirim', terkirim_pada = now(), galat = '' where id = (x->>'kirim_id')::bigint; ok := ok + 1;
     elsif x->>'status' = 'dilewati' then update public.notifikasi_kirim set status = 'dilewati', galat = left(coalesce(x->>'galat', ''), 300) where id = (x->>'kirim_id')::bigint;
     else update public.notifikasi_kirim set status = 'gagal', galat = left(coalesce(x->>'galat', 'tidak diketahui'), 300) where id = (x->>'kirim_id')::bigint; gagal := gagal + 1; end if;
-    if x ? 'hapus_endpoint' then delete from public.push_langganan where endpoint = x->>'hapus_endpoint'; end if;   -- langganan push kedaluwarsa (410)
+    if jsonb_typeof(x->'hapus_endpoint') = 'array' then                      -- langganan push kedaluwarsa (404/410)
+      delete from public.push_langganan where endpoint in (select jsonb_array_elements_text(x->'hapus_endpoint'));
+    elsif x ? 'hapus_endpoint' then delete from public.push_langganan where endpoint = x->>'hapus_endpoint'; end if;
   end loop;
   return jsonb_build_object('terkirim', ok, 'gagal', gagal);
 end $$;

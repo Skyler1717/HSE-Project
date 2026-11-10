@@ -395,8 +395,7 @@
     ctl.muat();
   }
   async function tPengingat(w) {
-    try { const N = await A.daftarNotifikasi(); w.replaceChildren(h('p', { class: 'kecil', text: 'Dihitung langsung dari data terbaru (tidak dikirim lewat email).' }), N.length ? h('div', { class: 'daftar-peringatan', role: 'list' }, N.map(n => A.peringatan(n.tingkat, n.judul, n.isi, n.ik, n.href))) : h('p', { class: 'ok-teks' }, ikon('centang'), ' Tidak ada yang perlu perhatian.')); }
-    catch (e) { w.replaceChildren(h('p', { class: 'galat-teks', text: e.message })); }
+    try { await A.isiPengingat(w); } catch (e) { w.replaceChildren(h('p', { class: 'galat-teks', text: e.message })); }
   }
   async function tAtur(w) {
     let p; try { p = await API.preferensiNotif(); } catch (e) { return w.replaceChildren(h('div', { class: 'kartu bahaya-kotak' }, h('p', { text: e.message }))); }

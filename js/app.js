@@ -869,7 +869,7 @@
   }
 
   // ---------- Ekspor ----------
-  const VERSI = '2.1.0';
+  const VERSI = '2.2.0';
   function sel(v) { let s = v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function keCSV(baris, kolom) { return '﻿' + [kolom.map(k => sel(k[1])).join(',')].concat(baris.map(r => kolom.map(k => sel(typeof k[0] === 'function' ? k[0](r) : r[k[0]])).join(','))).join('\r\n'); }
   function unduh(nama, isi, tipe) { const b = new Blob([isi], { type: tipe || 'text/csv;charset=utf-8' }); const a = h('a', { href: URL.createObjectURL(b), download: nama }); document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }

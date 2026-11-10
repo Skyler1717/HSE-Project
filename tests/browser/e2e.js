@@ -97,8 +97,9 @@ const hasil = []; const ok = (b, m) => { hasil.push((b ? 'LULUS ' : 'GAGAL ') + 
   const dok = await p.textContent('main'); ok(/Koordinator IPSRS/.test(dok) && /v1/.test(dok) && /LOTO/.test(dok), 'Dokumen: pemilik, tanggal tinjau, catatan revisi, dan riwayat versi tampil');
   // 13. Pencarian pengguna
   await p.goto('http://localhost:8765/?demo=1#/pengguna'); await p.waitForSelector('.daftar-pengguna');
-  await p.fill('input[type=search]', 'radiologi'); await p.waitForTimeout(150); ok(/1 dari 4 pengguna/.test(await p.textContent('main')), 'Pengguna: pencarian nama/email berfungsi');
-  await p.fill('input[type=search]', ''); await p.selectOption('.filter select >> nth=0', 'menunggu'); await p.waitForTimeout(150); ok(/1 dari 4 pengguna/.test(await p.textContent('main')), 'Pengguna: filter "menunggu persetujuan" berfungsi');
+  const nKartu = () => p.$$eval('.daftar-pengguna .kartu.pengguna', x => x.length); const semua = await nKartu();
+  await p.fill('input[type=search]', 'radiologi'); await p.waitForTimeout(700); ok(semua === 4 && await nKartu() === 1 && /dari 1\b/.test(await p.textContent('.pager')) && /radiologi/i.test(await p.textContent('.daftar-pengguna')), 'Pengguna: pencarian nama/email berfungsi (paginasi)');
+  await p.fill('input[type=search]', ''); await p.waitForTimeout(700); await p.selectOption('.filter select >> nth=0', 'menunggu'); await p.waitForTimeout(500); ok(await nKartu() === 1 && /Menunggu persetujuan/.test(await p.textContent('.daftar-pengguna')), 'Pengguna: filter "menunggu persetujuan" berfungsi');
   ok(!galat.length, 'tanpa galat JavaScript' + (galat.length ? ': ' + galat.slice(0, 3).join(' | ') : ''));
   console.log(hasil.join('\n')); await b.close();
 })().catch(async e => { if (globalThis.halaman) await globalThis.halaman.screenshot({ path: '/tmp/claude-0/-home-user-HSE-Project/19ed16c3-474c-5395-bf66-36a8b0b11e0f/scratchpad/gagal.png' }); console.log(hasil.join('\n')); console.log('BERHENTI:', e.message.split('\n')[0]); process.exit(1); });
