@@ -494,7 +494,7 @@
   }
   async function perbaruiLonceng() {
     const el = document.querySelector('.lonceng-n'); if (!el || !peran()) return;
-    try { const n = (await daftarNotifikasi()).filter(x => !x.dibaca).length; el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); el.parentElement.setAttribute('aria-label', 'Notifikasi' + (n ? ', ' + n + ' belum dibaca' : '')); } catch (e) { el.hidden = true; }
+    try { const n = (await daftarNotifikasi()).filter(x => !x.dibaca).length + (A.jumlahNotifServer ? await A.jumlahNotifServer() : 0); el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); el.parentElement.setAttribute('aria-label', 'Notifikasi' + (n ? ', ' + n + ' belum dibaca' : '')); } catch (e) { el.hidden = true; }
   }
   // Perbarui lencana setiap kali halaman baru dirender (bukan berdasarkan jeda waktu)
   const wadahApp = document.getElementById('app');

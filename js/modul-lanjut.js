@@ -148,7 +148,7 @@
         perlu.replaceChildren(h('section', { class: 'kartu' }, h('div', { class: 'kartu-kepala' }, h('h2', { text: 'Perlu investigasi (90 hari)' }), badge(x.length + ' kejadian', x.length ? 'rk-2' : 'rk-0')),
           x.length ? h('div', { class: 'daftar-ringkas' }, x.slice(0, 20).map(l => h('div', { class: 'baris-ringkas' }, h('strong', { text: l.nomor }), h('span', { text: A.tgl(l.tanggal_lapor) + ' · ' + (JENIS[l.jenis] || '').split(' /')[0] + ' · ' + kat(l.kategori_kode).nama + ' · ' + namaUnit(l.unit_id) }),
             staf() ? h('a', { class: 'btn kedua kecil', href: '#/investigasi?baru=' + encodeURIComponent(l.id) }, ikon('cari'), 'Mulai investigasi') : null))) : h('p', { class: 'ok-teks' }, ikon('centang'), ' Semua kejadian sudah diinvestigasi.')));
-      } catch (e) { perlu.replaceChildren(); }
+      } catch (e) { perlu.replaceChildren(h('p', { class: 'galat-teks', text: 'Daftar kejadian belum dapat dimuat: ' + e.message })); }
     })();
     const filter = h('div', { class: 'kartu filter' }, inputCari('Cari nomor, lokasi, akar masalah…', v => { f.cari = v; ctl.ulang(); }),
       pilih([['', 'Semua status']].concat(Object.entries(ST_INV).map(([k, v]) => [k, v[0]])), '', { 'aria-label': 'Status', onchange: e => { f.status = e.target.value; ctl.ulang(); } }), ctl.tombolEkspor);

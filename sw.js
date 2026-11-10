@@ -1,7 +1,7 @@
 /* sw.js — Service worker: menyimpan berkas tampilan agar aplikasi tetap terbuka saat sinyal lemah.
    Data laporan dari server TIDAK disimpan di cache (privasi). */
-const VERSI_CACHE = 'lapor-k3-v2.1.1';
-const BERKAS = ['./', './index.html', './config.js', './css/app.css', './js/qr.js', './js/asisten.js', './js/api.js', './js/intel.js', './js/grafik.js', './js/app.js', './js/modul.js', './js/modul-kerja.js', './js/modul-dok.js',
+const VERSI_CACHE = 'lapor-k3-v2.2.0';
+const BERKAS = ['./', './index.html', './config.js', './css/app.css', './js/qr.js', './js/asisten.js', './js/api.js', './js/intel.js', './js/grafik.js', './js/app.js', './js/modul.js', './js/modul-kerja.js', './js/modul-dok.js', './js/modul-lanjut.js', './js/modul-izin.js',
   './manifest.webmanifest', './icons/ikon-192.png', './icons/ikon-512.png',
   './assets/logo.png', './assets/nama-hse.svg', './assets/nama-hse-putih.svg', './assets/bentenan-tenun.svg', './assets/bentenan-merah.svg', './assets/bentenan-terang.svg', './assets/pita-merah.svg',
   './assets/bentenan-medan-gading.svg', './assets/bentenan-medan-merah.svg', './assets/bentenan-pita-gading.svg', './assets/bentenan-pita-gading-v.svg', './assets/bentenan-pita-merah.svg',
@@ -27,4 +27,15 @@ self.addEventListener('fetch', e => {
     e.respondWith(caches.match(req).then(r => r || fetch(req).then(res => { const salin = res.clone(); caches.open(VERSI_CACHE).then(c => c.put(req, salin)); return res; })));
   }
   // Permintaan ke Supabase (data) tidak disentuh: selalu langsung ke server.
+});
+
+// Notifikasi push (Web Push). Isi hanya judul/ringkasan; data lengkap dibuka di aplikasi setelah login.
+self.addEventListener('push', e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) { d = { judul: e.data ? e.data.text() : 'HSE' }; }
+  e.waitUntil(self.registration.showNotification(d.judul || 'HSE', { body: d.isi || '', icon: './icons/ikon-192.png', badge: './icons/ikon-192.png', tag: d.tag || undefined, data: { tautan: d.tautan || '#/notifikasi' } }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const tujuan = './' + ((e.notification.data && e.notification.data.tautan) || '#/notifikasi');
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(ws => { for (const w of ws) { if ('focus' in w) { w.navigate(tujuan); return w.focus(); } } return self.clients.openWindow(tujuan); }));
 });

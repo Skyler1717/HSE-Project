@@ -30,7 +30,7 @@ async function transaksi(c, fn) {
 // ---- Penerjemah filter PostgREST → SQL berparameter ----
 function nilaiFilter(op, v, p) {
   if (op === 'is') { if (!/^(null|true|false)$/.test(v)) throw Object.assign(new Error('is tidak valid'), { http: 400 }); return { sql: 'is ' + v }; }
-  if (op === 'in') { const arr = v.replace(/^\(|\)$/g, '').split(',').map(x => x.replace(/^"|"$/g, '')); p.push(arr); return { sql: '= any($' + p.length + ')' }; }
+  if (op === 'in') { const arr = v.replace(/^\(|\)$/g, '').split(',').map(x => x.replace(/^"|"$/g, '')); p.push(arr); return { sql: '= any($' + p.length + '::text[])', teks: true }; }
   const peta = { eq: '=', neq: '<>', gt: '>', gte: '>=', lt: '<', lte: '<=', like: 'like', ilike: 'ilike' };
   if (!peta[op]) throw Object.assign(new Error('operator tidak didukung: ' + op), { http: 400 });
   p.push(op.endsWith('like') ? v.replace(/\*/g, '%') : v); return { sql: peta[op] + ' $' + p.length };
@@ -40,7 +40,7 @@ function kondisi(kolom, ekspr, p) {
   let neg = false; if (ekspr.startsWith('not.')) { neg = true; ekspr = ekspr.slice(4); }
   const i = ekspr.indexOf('.'); const op = ekspr.slice(0, i), v = ekspr.slice(i + 1);
   const f = nilaiFilter(op, v, p);
-  const c = (op === 'in' ? `${kolom}::text ${f.sql}::text[]` : `${kolom} ${f.sql}`);
+  const c = f.teks ? `${kolom}::text ${f.sql}` : `${kolom} ${f.sql}`;
   return neg ? `not (${c})` : c;
 }
 function pecahOr(isi) { const out = []; let d = 0, buf = ''; for (const ch of isi) { if (ch === '(') d++; if (ch === ')') d--; if (ch === ',' && d === 0) { out.push(buf); buf = ''; } else buf += ch; } if (buf) out.push(buf); return out; }
