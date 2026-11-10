@@ -7,10 +7,10 @@ const { execFileSync } = require('child_process');
 const fs = require('fs'), path = require('path');
 const L = require('../browser/lib-supabase.js');
 const BUKTI = process.env.BUKTI || path.join(__dirname, 'bukti'); fs.mkdirSync(BUKTI, { recursive: true });
-const sql = q => execFileSync('psql', ['-d', 'hse_uat', '-tAq', '-c', q]).toString().trim();
+const sql = q => execFileSync('psql', ['-d', process.env.UAT_DB || 'hse_uat', '-tAq', '-c', q]).toString().trim();
 const tunggu = ms => new Promise(r => setTimeout(r, ms));
 const ID = { p1: '00000000-0000-0000-0000-0000000000a1', p2: '00000000-0000-0000-0000-0000000000a2', p3: '00000000-0000-0000-0000-0000000000a3', pjIpsrs: '00000000-0000-0000-0000-0000000000b1', pjKesling: '00000000-0000-0000-0000-0000000000b2', ptKesling: '00000000-0000-0000-0000-0000000000c1', ptFarmasi: '00000000-0000-0000-0000-0000000000c2' };
-const TAG = 'SIMULASI_UAT';
+const TAG = process.env.UAT_TAG || 'SIMULASI_UAT'; const DOMAIN = process.env.UAT_DOMAIN || 'simulasi-uat.test'; const NAMA = process.env.UAT_NAMA || 'SIMULASI_UAT';
 const hasil = [];
 let H = {};
 async function dialogYa(p) { await p.waitForSelector('dialog [data-ya]', { timeout: 8000 }); await p.click('dialog [data-ya]'); }
@@ -40,7 +40,7 @@ async function uji(meta, fn) {
 (async () => {
   const b = await chromium.launch();
   const akun = { P1: 'p1.koordinator', P2: 'p2.hira', P3: 'p3.insiden', pjIpsrs: 'pj.ipsrs', pjKesling: 'pj.kesling', ptKesling: 'petugas.kesling', ptFarmasi: 'petugas.farmasi' };
-  for (const [k, e] of Object.entries(akun)) { const ctx = await L.konteks(b, { viewport: { width: 1280, height: 860 } }); H[k] = await L.masuk(ctx, e + '@simulasi-uat.test'); await tunggu(1500); }
+  for (const [k, e] of Object.entries(akun)) { const ctx = await L.konteks(b, { viewport: { width: 1280, height: 860 } }); H[k] = await L.masuk(ctx, e + '@' + DOMAIN); await tunggu(1500); }
   const { P1, P2, P3, pjIpsrs, pjKesling, ptKesling, ptFarmasi } = H;
   const S = {}; // keadaan antar-kasus
 
@@ -113,7 +113,7 @@ async function uji(meta, fn) {
       await P2.evaluate(x => window.K3Api.kirimLaporan(Object.assign(x, { id_klien: crypto.randomUUID() })), { jenis: 'bahaya', kategori: k, unit_id: unit(u), uraian: TAG + ' ' + ur, lokasi: lok, mendesak: false, anonim: false });
       const id = sql("select id from laporan where uraian = '" + (TAG + ' ' + ur).replace(/'/g, "''") + "'"); ids.push([id, d, p]);
       const pj = u === 'KESLING' ? ID.pjKesling : ID.pjIpsrs;
-      await P2.evaluate(a => window.K3Api.tugaskan(a[0], a[1], a[2], a[3], a[4], 'Penilaian awal SIMULASI_UAT'), [id, pj, tgl, d, p]);
+      await P2.evaluate(a => window.K3Api.tugaskan(a[0], a[1], a[2], a[3], a[4], a[5]), [id, pj, tgl, d, p, 'Penilaian awal ' + TAG]);
     }
     S.risiko = ids;
     const benar = +sql("select count(*) from laporan where uraian like '" + TAG + "%rujukan register%' and skor = dampak * kemungkinan and status = 'ditugaskan'");
@@ -281,7 +281,7 @@ async function uji(meta, fn) {
   });
   await uji({ id: 'UAT-26', persona: 'P2', tanggal: '2026-10-09', fitur: 'Tindak lanjut risk register', skenario: 'PJ IPSRS mencatat tindak lanjut rekayasa untuk risiko listrik; K3RS menutup',
     langkah: 'PJ: tambah tindak lanjut (level rekayasa, bukti) → status dalam tindak lanjut; P2 menutup', diharapkan: 'Riwayat status dan tindak lanjut tercatat; penutupan oleh K3RS', layar: 'pjIpsrs' }, async () => {
-    await pjIpsrs.evaluate(id => window.K3Api.tambahTL(id, 'SIMULASI_UAT Pemasangan stop kontak dinding permanen dan penarikan kabel rol tidak standar', 'rekayasa', 'Foto sebelum/sesudah (simulasi)'), S.lapListrik);
+    await pjIpsrs.evaluate(a => window.K3Api.tambahTL(a[0], a[1] + ' Pemasangan stop kontak dinding permanen dan penarikan kabel rol tidak standar', 'rekayasa', 'Foto sebelum/sesudah (simulasi)'), [S.lapListrik, TAG]);
     const tutup = await P2.evaluate(id => window.K3Api.ubahStatus(id, 'tertutup', 'Diverifikasi saat ronde K3 (simulasi)').then(() => 'ok', e => e.message), S.lapListrik);
     await L.buka(P2, '/laporan/' + S.lapListrik); await tunggu(600);
     const r = sql("select status || ':' || level_pengendalian || ':' || (select count(*) from riwayat_status where laporan_id=l.id) from laporan l where id='" + S.lapListrik + "'");
@@ -305,7 +305,7 @@ async function uji(meta, fn) {
     await L.buka(P1, '/kegiatan?baru=pelatihan'); await P1.fill('form input[maxlength="160"]', TAG + ' Penggunaan APAR dan Code Red'); await P1.fill('form input[type=datetime-local]', sekarangLokal()); await P1.fill('form input[placeholder^="kosong"]', '24');
     await P1.click('form button[type=submit]'); await P1.waitForFunction(() => /kegiatan\?id=/.test(location.hash)); const id = await hash(P1);
     await P1.fill('input[aria-label="Cari rekan"]', 'Kesling'); await P1.waitForSelector('.chip-baris button:has-text("Petugas Kesling")'); await P1.click('.chip-baris button:has-text("Petugas Kesling")'); await tunggu(800);
-    const n = 'SIMULASI_UAT Petugas Kesling';
+    const n = NAMA + ' Petugas Kesling';
     await P1.selectOption(`select[aria-label="Kehadiran ${n}"]`, 'hadir'); await P1.fill(`input[aria-label="Nilai pre-test ${n}"]`, '50'); await P1.fill(`input[aria-label="Nilai post-test ${n}"]`, '85');
     await P1.selectOption(`select[aria-label="Kompetensi ${n}"]`, 'kompeten'); await P1.click(`button[aria-label="Simpan ${n}"]`); await tunggu(900);
     const k0 = sql("select kompetensi from kegiatan_peserta where kegiatan_id='" + id + "'");
@@ -385,7 +385,7 @@ async function uji(meta, fn) {
 
   // Galat JavaScript selama sesi
   const galat = Object.entries(H).flatMap(([k, p]) => (p.galat || []).map(g => k + ': ' + g));
-  fs.writeFileSync(path.join(__dirname, 'hasil_uat.json'), JSON.stringify({ dijalankan: new Date().toISOString(), basis_data: 'hse_uat (lokal, uji)', matriks_rs: MATRIKS_RS, konflik_pita: S.konflik, kolom_ekspor: S.kolomEkspor, kolom_hilang: S.kolomHilang, galat_js: galat, hasil }, null, 1));
+  fs.writeFileSync(process.env.UAT_OUT || path.join(__dirname, 'hasil_uat.json'), JSON.stringify({ dijalankan: new Date().toISOString(), basis_data: 'hse_uat (lokal, uji)', matriks_rs: MATRIKS_RS, konflik_pita: S.konflik, kolom_ekspor: S.kolomEkspor, kolom_hilang: S.kolomHilang, galat_js: galat, hasil }, null, 1));
   const rek = hasil.reduce((a, r) => (a[r.status] = (a[r.status] || 0) + 1, a), {}); console.log('REKAP', JSON.stringify(rek), 'galat JS:', galat.length);
   await b.close();
 })();

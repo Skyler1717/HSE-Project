@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>HSE Project — grafik gerak</title>
+<link rel="stylesheet" href="../../../css/app.css">
+<style>
+@font-face{font-family:InterV;src:url(../../../fonts/inter-regular.woff) format('woff');font-weight:400}
+@font-face{font-family:InterV;src:url(../../../fonts/inter-medium.woff) format('woff');font-weight:500}
+@font-face{font-family:InterV;src:url(../../../fonts/inter-semibold.woff) format('woff');font-weight:600}
+@font-face{font-family:InterV;src:url(../../../fonts/inter-bold.woff) format('woff');font-weight:700}
+:root{--m:#B8202E;--mt:#861C27;--n:#0E1726;--n2:#16233A;--e:#F5B700;--g:#FAF7F2;--abu:#9AA6B8}
+*{box-sizing:border-box;margin:0}
+html,body{width:1440px;height:810px;overflow:hidden;background:var(--n);font-family:InterV,Inter,sans-serif;color:#fff}
+#panggung{position:absolute;inset:0;overflow:hidden}
+.latar{position:absolute;inset:0;background:radial-gradient(1200px 700px at 70% 30%,#1f2f4d 0%,var(--n) 60%,#070c16 100%)}
+.motif{position:absolute;inset:-40px;background-image:url(../../../assets/bentenan-medan-merah.svg);background-size:120px;opacity:.13;animation:geser 40s linear infinite}
+@keyframes geser{to{transform:translate(120px,60px)}}
+.pita{position:absolute;left:0;right:0;height:10px;background-image:url(../../../assets/pita-merah.svg);background-size:auto 10px;opacity:.9}
+.partikel{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;opacity:.25;animation:naik linear infinite}
+@keyframes naik{from{transform:translateY(0)}to{transform:translateY(-900px)}}
+.x{opacity:0;transition:opacity .7s ease,transform .9s cubic-bezier(.2,.8,.2,1),filter .9s ease}
+.x.on{opacity:1;transform:none!important;filter:none!important}
+.x.off,.xo.off{opacity:0!important;transition:opacity .6s ease,transform .6s ease}
+.xo{opacity:0;transition:opacity .8s ease}.xo.on{opacity:1}
+.kolomT{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;text-align:center}
+.kartu h3{color:#fff}.kartu{color:#fff}
+.tengah{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+h1.besar{color:#fff;font-size:64px;font-weight:700;letter-spacing:-1px;line-height:1.08}
+.kicker{font-size:18px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--e)}
+.sub{font-size:26px;color:#d7deea;font-weight:400}
+.kartu{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:18px;backdrop-filter:blur(4px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.il{width:120px;height:120px}
+.ilkotak{width:170px;height:170px;display:grid;place-items:center;background:#FAF7F2;border-radius:24px;box-shadow:0 18px 40px rgba(0,0,0,.4)}
+.ilkotak svg{width:130px;height:130px}
+.logo-grup{display:flex;align-items:center;gap:30px}
+.logo-grup img.lg{width:190px;height:190px;border-radius:50%;background:#fff;padding:10px;box-shadow:0 0 0 6px rgba(255,255,255,.12),0 0 80px rgba(184,32,46,.6)}
+.logo-grup .nama img{height:118px;display:block}
+.logo-grup .sf{font-size:24px;letter-spacing:9px;font-weight:700;color:#fff;margin-top:10px;border-top:2px solid rgba(255,255,255,.5);padding-top:10px}
+.cip{display:inline-flex;align-items:center;gap:12px;padding:14px 22px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);font-size:22px;font-weight:600}
+.cip i{width:12px;height:12px;border-radius:50%;background:var(--e);display:inline-block}
+.layar{position:absolute;border-radius:14px;overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.12)}
+.layar img{width:100%;display:block}
+.layar .bilah{height:28px;background:#1d2738;display:flex;gap:8px;align-items:center;padding-left:14px}
+.layar .bilah b{width:11px;height:11px;border-radius:50%;background:#ff5f57}.layar .bilah b:nth-child(2){background:#febc2e}.layar .bilah b:nth-child(3){background:#28c840}
+.kolom2{position:absolute;top:150px;display:grid;grid-template-columns:1fr 1fr;gap:40px;left:110px;right:110px}
+.kolom2 .kartu{padding:34px 38px}
+.kolom2 h3{font-size:30px;margin-bottom:22px}
+.butir{font-size:23px;line-height:1.35;margin:14px 0;display:flex;gap:14px;align-items:flex-start;color:#e6ebf3}
+.butir .tnd{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:18px}
+.buruk .tnd{background:rgba(255,255,255,.12);color:#c9d1dd}.baik .tnd{background:var(--m);color:#fff}
+.judulAtas{position:absolute;left:110px;top:64px;font-size:40px;font-weight:700}
+.buktiMG{position:absolute;left:110px;right:110px;bottom:70px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
+/* diagram */
+svg.dg{position:absolute;inset:0;width:1440px;height:810px}
+.kotak rect{fill:#16233A;stroke:rgba(255,255,255,.35);stroke-width:1.5}
+.kotak.merah rect{fill:#2a1420;stroke:#e5525d}
+.kotak.emas rect{fill:#2b2410;stroke:#F5B700}
+.kotak.hijau rect{fill:#10261c;stroke:#3fbf7f}
+.kotak.abu rect{fill:#1b1f27;stroke:#6b7280;stroke-dasharray:6 5}
+.kotak text{fill:#fff;font-size:19px;font-weight:600;font-family:InterV}
+.kotak text.k{font-size:14px;font-weight:400;fill:#c5cfdd}
+.panah{stroke:#8fa3bf;stroke-width:2.2;fill:none;marker-end:url(#ujung)}
+.panah.putus{stroke-dasharray:7 6}
+.paket{fill:#F5B700;filter:drop-shadow(0 0 8px #F5B700)}
+.lbl{fill:#d6deea;font-size:14px;font-family:InterV}
+.tabel rect.h{fill:#B8202E}.tabel rect.b{fill:#16233A;stroke:rgba(255,255,255,.25)}
+.tabel text{fill:#fff;font-family:InterV;font-size:15px}.tabel text.t{font-weight:700;font-size:17px}.tabel text.c{fill:#c7d2e2;font-size:13.5px}
+.relasi{stroke:#e5a0a7;stroke-width:1.8;fill:none}
+.catatan{position:absolute;left:110px;right:110px;bottom:40px;font-size:18px;color:#c9d3e0;text-align:center}
+.stat{display:flex;gap:24px;justify-content:center}
+.stat .kartu{width:250px;padding:26px;text-align:center}
+.stat b{display:block;font-size:64px;font-weight:700;color:#fff}.stat span{font-size:20px;color:#c9d3e0}
+.teks-kode{font-family:'DejaVu Sans Mono',monospace}
+</style></head>
+<body><div id="panggung"><div class="latar"></div><div class="motif"></div></div>
+<script src="../../../js/grafik.js"></script>
+<script>
+const P = document.getElementById('panggung'), Q = new URLSearchParams(location.search);
+const IMG = Q.get('img') || '';
+function el(tag, at, ...an) { const e = document.createElement(tag); for (const k in at || {}) { if (k === 'style') e.style.cssText = at[k]; else if (k === 'text') e.textContent = at[k]; else if (k === 'html') e.innerHTML = at[k]; else e.setAttribute(k, at[k]); } an.flat().forEach(c => c && e.append(c)); return e; }
+function sv(tag, at, ...an) { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in at || {}) { if (k === 'text') e.textContent = at[k]; else e.setAttribute(k, at[k]); } an.flat().forEach(c => c && e.append(c)); return e; }
+const tambah = (e, gaya) => { if (gaya) e.style.cssText += gaya; P.append(e); return e; };
+const on = (e, t) => setTimeout(() => e.classList.add('on'), t * 1000);
+const off = (e, t) => setTimeout(() => e.classList.add('off'), t * 1000);
+const partikel = n => { for (let i = 0; i < n; i++) tambah(el('div', { class: 'partikel' }), `left:${Math.random() * 1440}px;top:${810 + Math.random() * 900}px;animation-duration:${18 + Math.random() * 30}s;animation-delay:-${Math.random() * 30}s;opacity:${.1 + Math.random() * .25}`); };
+function logo(skala = 1) {
+  return el('div', { class: 'logo-grup', style: `transform:scale(${skala})` }, el('img', { class: 'lg', src: '../../../assets/logo.png' }),
+    el('div', { class: 'nama' }, el('img', { src: '../../../assets/nama-hse-putih.svg' }), el('div', { class: 'sf', text: 'SAFETY FIRST' })));
+}
+function kotak(x, y, w, h, judul, ket, kls = '') { return sv('g', { class: 'kotak ' + kls, transform: `translate(${x} ${y})` }, sv('rect', { width: w, height: h, rx: 14 }), sv('text', { x: w / 2, y: ket ? h / 2 - 4 : h / 2 + 7, 'text-anchor': 'middle', text: judul }), ket ? sv('text', { class: 'k', x: w / 2, y: h / 2 + 20, 'text-anchor': 'middle', text: ket }) : null); }
+function svgDasar() { const s = sv('svg', { class: 'dg', viewBox: '0 0 1440 810' }); s.append(sv('defs', {}, sv('marker', { id: 'ujung', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, sv('path', { d: 'M0 0L10 5L0 10z', fill: '#8fa3bf' })))); P.append(s); return s; }
+function animasiPaket(s, d, dur, mulai, ulang = true) { // titik bercahaya bergerak sepanjang jalur d
+  const p = sv('path', { d, fill: 'none', stroke: 'none' }); s.append(p); const c = sv('circle', { r: 7, class: 'paket', opacity: 0 }); s.append(c);
+  const L = p.getTotalLength(); let t0 = null;
+  setTimeout(() => { c.setAttribute('opacity', 1); const f = ts => { if (t0 === null) t0 = ts; let u = ((ts - t0) / (dur * 1000)); if (u > 1) { if (!ulang) { c.setAttribute('opacity', 0); return; } t0 = ts; u = 0; } const pt = p.getPointAtLength(u * L); c.setAttribute('cx', pt.x); c.setAttribute('cy', pt.y); requestAnimationFrame(f); }; requestAnimationFrame(f); }, mulai * 1000);
+}
+const muncul = (g, t, dari = 'translateY(20px)') => { g.classList.add('x'); g.style.transform = dari; on(g, t); return g; };
+
+const ADEGAN = {
+  // ===== VIDEO 1 =====
+  buka(T) {
+    partikel(40);
+    const ils = ['ketinggian', 'listrik', 'kimia', 'api', 'biologi', 'ergonomi', 'licin', 'radiasi'];
+    const grid = tambah(el('div', { class: 'x', style: 'position:absolute;left:0;right:0;top:150px;display:grid;justify-content:center;grid-template-columns:repeat(4,170px);gap:34px;transform:none' }));
+    ils.forEach((k, i) => { const c = el('div', { class: 'ilkotak x', style: 'transform:translateY(40px) scale(.9)' }, K3Grafik.ilustrasi(k, { label: k })); grid.append(c); on(c, .3 + i * .35); });
+    on(grid, .1);
+    const kata = tambah(el('div', { class: 'x', style: 'position:absolute;left:0;right:0;bottom:120px;text-align:center;transform:translateY(20px)' }, el('div', { class: 'kicker', style: 'font-size:26px', text: 'Bahaya · Risiko · Insiden · Tindak lanjut' })));
+    on(kata, 2.2); off(grid, T[1] - .9); off(kata, T[1] - .9);
+    const k = tambah(el('div', { class: 'kolomT' }));
+    const lg = el('div', { class: 'x', style: 'filter:blur(14px);transform:scale(.88)' }, logo(1.1)); k.append(lg); on(lg, T[1] - .3);
+    const tg = el('div', { class: 'x', style: 'transform:translateY(16px)' }, el('div', { class: 'sub', text: 'Aplikasi manajemen Keselamatan dan Kesehatan Kerja yang terintegrasi' })); k.append(tg); on(tg, T[1] + 1.2);
+  },
+  masalah(T) {
+    partikel(25);
+    const item = [['Formulir kertas', '📄'], ['Spreadsheet terpisah', '📊'], ['Pesan tercecer', '💬'], ['Tindak lanjut sulit dipantau', '⏳'], ['Data sulit dicari', '🔎'], ['Laporan berulang', '🗂']];
+    const pos = [[150, 150, -8], [980, 120, 6], [260, 520, 5], [930, 520, -6], [560, 300, 3], [620, 620, -4]];
+    const kart = item.map(([t, e], i) => { const k = tambah(el('div', { class: 'kartu x', style: `position:absolute;left:${pos[i][0]}px;top:${pos[i][1]}px;padding:22px 28px;font-size:26px;font-weight:600;transform:translateY(30px) rotate(${pos[i][2]}deg);transition:opacity .7s,transform 1.4s cubic-bezier(.5,0,.2,1),left 1.4s cubic-bezier(.5,0,.2,1),top 1.4s cubic-bezier(.5,0,.2,1)` }, el('span', { style: 'display:inline-block;width:12px;height:12px;border-radius:3px;background:#e5525d;margin-right:14px' }), t)); setTimeout(() => { k.classList.add('on'); k.style.transform = `rotate(${pos[i][2]}deg)`; }, (.4 + i * .55) * 1000); return k; });
+    // gerak acak kecil
+    setInterval(() => kart.forEach((k, i) => { if (!k.dataset.kumpul) k.style.transform = `rotate(${pos[i][2] + Math.sin(Date.now() / 900 + i) * 2}deg) translate(${Math.sin(Date.now() / 1300 + i) * 8}px,${Math.cos(Date.now() / 1100 + i) * 8}px)`; }), 60);
+    const tKumpul = T[2] - .6;
+    setTimeout(() => kart.forEach(k => { k.dataset.kumpul = 1; k.style.left = '640px'; k.style.top = '360px'; k.style.transform = 'scale(.3)'; k.style.opacity = 0; }), tKumpul * 1000);
+    const l = tambah(el('div', { class: 'layar x', style: 'left:270px;top:110px;width:900px;transform:scale(.6);transition:opacity .8s,transform 1.2s cubic-bezier(.2,.8,.2,1)' }, el('div', { class: 'bilah' }, el('b'), el('b'), el('b')), el('img', { src: IMG + '/dasbor.png' })));
+    setTimeout(() => { l.classList.add('on'); }, (tKumpul + .9) * 1000);
+    const cap = tambah(el('div', { class: 'x', style: 'position:absolute;left:0;right:0;bottom:46px;text-align:center;transform:translateY(16px)' }, el('div', { class: 'cip' }, el('i'), 'Satu aplikasi untuk seluruh alur K3')));
+    on(cap, tKumpul + 1.6);
+  },
+  beda(T) {
+    partikel(20);
+    tambah(muncul(el('div', { class: 'judulAtas', text: 'Pengelolaan terpisah vs. terintegrasi' }), .2));
+    const kol = tambah(el('div', { class: 'kolom2' }));
+    const kiri = el('div', { class: 'kartu buruk x', style: 'transform:translateX(-30px)' }, el('h3', { text: 'Terpisah (konseptual)' }),
+      ['Catatan di formulir dan berkas berbeda', 'Status tindak lanjut ditanyakan manual', 'Rekap disusun ulang setiap bulan'].map(t => el('div', { class: 'butir' }, el('span', { class: 'tnd', text: '–' }), t)));
+    const kanan = el('div', { class: 'kartu baik x', style: 'transform:translateX(30px);border-color:rgba(229,82,93,.6)' }, el('h3', { text: 'HSE Project' }),
+      ['Laporan → analisis → CAPA dalam satu alur', 'Status dan tenggat terlihat di dasbor', 'Laporan bulanan dihitung dari basis data'].map(t => el('div', { class: 'butir' }, el('span', { class: 'tnd', text: '✓' }), t)));
+    kol.append(kiri, kanan); on(kiri, .6); on(kanan, 1.6);
+    const bukti = tambah(el('div', { class: 'buktiMG x', style: 'transform:none' })); on(bukti, .1);
+    ['Berjalan di peramban & ponsel (PWA)', 'Hak akses di basis data (RLS)', 'Jejak perubahan tercatat', 'Salinan ke Google Sheets', 'Komponen gratis & sumber terbuka'].forEach((t, i) => { const c = el('div', { class: 'cip x', style: 'transform:translateY(20px)' }, el('i'), t); bukti.append(c); on(c, T[1] + .4 + i * 1.3); });
+    const pesan = tambah(el('div', { class: 'x', style: 'position:absolute;left:0;right:0;top:640px;text-align:center;font-size:30px;font-weight:700;color:#fff;transform:translateY(16px)' }, 'Dirancang untuk berkembang bersama kebutuhan operasional'));
+    off(bukti, T[2] - .2); on(pesan, T[2] + .3);
+  },
+  tutup(T) {
+    partikel(45);
+    const k = tambah(el('div', { class: 'kolomT' }));
+    const lg = el('div', { class: 'x', style: 'transform:scale(.9);filter:blur(10px)' }, logo(1.05)); k.append(lg); on(lg, .3);
+    const tag = el('div', { style: 'display:flex;gap:28px;justify-content:center;font-size:36px;font-weight:700;margin-top:10px' }); k.append(tag);
+    ['Smarter Safety.', 'Better Management.', 'Safer Workplace.'].forEach((t, i) => { const s = el('span', { class: 'x', style: 'transform:translateY(18px);font-style:italic' + (i === 1 ? ';color:#F5B700' : ''), text: t }); tag.append(s); on(s, T[1] + .9 + i * .6); });
+    const url = el('div', { class: 'x', style: 'font-size:22px;color:#c9d3e0;transform:translateY(10px)' }, 'skyler1717.github.io/HSE-Project'); k.append(url); on(url, T[1] + 3);
+    tambah(el('div', { class: 'pita', style: 'bottom:0' }));
+  },
+  // ===== VIDEO 2 =====
+  judul2(T) {
+    partikel(30);
+    const k = tambah(el('div', { class: 'kolomT', style: 'gap:26px' }));
+    const lg = el('div', { class: 'x', style: 'transform:scale(.9)' }, logo(.8)); k.append(lg); on(lg, .2);
+    const j = el('div', { class: 'x', style: 'transform:translateY(20px)' }, el('div', { class: 'kicker', text: 'Dokumenter teknis' }), el('h1', { class: 'besar', style: 'font-size:52px;margin-top:14px', text: 'Arsitektur & Pengembangan HSE Project' })); k.append(j); on(j, 1);
+    const ic = el('div', { style: 'display:flex;gap:16px;justify-content:center' }); k.append(ic);
+    ['Frontend', 'Backend', 'Basis data', 'Integrasi', 'Keamanan', 'Pengembangan'].forEach((t, i) => { const c = el('div', { class: 'cip x', style: 'transform:translateY(16px)' }, el('i'), t); ic.append(c); on(c, T[1] + .3 + i * .45); });
+  },
+  teknologi(T) {
+    tambah(muncul(el('div', { class: 'judulAtas', text: 'Teknologi yang terverifikasi di kode sumber' }), .1));
+    const grup = [
+      ['Frontend', [['HTML, CSS, JavaScript murni', 'index.html, js/*.js'], ['Tanpa framework & tanpa build', 'tidak ada package.json aplikasi'], ['GitHub Pages', 'hosting statis'], ['PWA', 'manifest.webmanifest, sw.js']], 0],
+      ['Backend (Supabase)', [['PostgreSQL', 'supabase/*.sql'], ['API REST & RPC otomatis', 'PostgREST'], ['Auth + MFA', 'peran K3RS wajib aal2'], ['Storage privat', 'bucket foto & dokumen'], ['supabase-js 2.45.4', 'js/api.js']], 2],
+      ['Integrasi', [['Google Apps Script → Sheets', 'integrasi/google-sheets/Kode.gs'], ['Open-Meteo', 'peringatan cuaca, tanpa kunci'], ['pdf.js · mammoth · tesseract', 'baca/OCR dokumen di peramban'], ['Edge Function notifikasi', 'tersedia di repo — belum aktif', 1]], 3]];
+    const wadah = tambah(el('div', { style: 'position:absolute;left:90px;right:90px;top:150px;display:grid;grid-template-columns:repeat(3,1fr);gap:28px' }));
+    grup.forEach(([j, isi, ti]) => { const k = el('div', { class: 'kartu x', style: 'padding:26px 28px;transform:translateY(24px)' }, el('div', { class: 'kicker', style: 'margin-bottom:16px', text: j }),
+      isi.map(([a, b, belum]) => el('div', { style: 'margin:14px 0' }, el('div', { style: 'font-size:22px;font-weight:600;color:' + (belum ? '#9aa6b8' : '#fff'), text: a }), el('div', { class: 'teks-kode', style: 'font-size:14.5px;color:' + (belum ? '#F5B700' : '#9fb2cc') + ';margin-top:4px', text: b }))));
+      wadah.append(k); on(k, Math.max(.3, (T[ti] || 0) - .2)); });
+  },
+  arsitektur(T) { // diagram arsitektur sistem dengan paket data bergerak
+    tambah(muncul(el('div', { class: 'judulAtas', text: Q.get('judul') || 'Arsitektur sistem (sesuai kode sumber)' }), .1));
+    const s = svgDasar();
+    const g = (e, t) => { e.classList.add('xo'); s.append(e); on(e, t); return e; };
+    const t = i => Math.max(.2, (T[i] || 0) - .3);
+    g(kotak(70, 330, 210, 90, 'Pengguna', 'peramban / ponsel'), .4);
+    g(kotak(370, 300, 270, 150, 'Frontend PWA', 'GitHub Pages · JS murni', 'merah'), .9);
+    g(kotak(740, 170, 280, 100, 'Supabase Auth', 'JWT · MFA'), t(1));
+    g(kotak(740, 310, 280, 120, 'API PostgREST', 'tabel + RPC'), t(1));
+    g(kotak(740, 470, 280, 100, 'Storage', 'foto & dokumen privat'), t(1));
+    g(kotak(1100, 280, 270, 180, 'PostgreSQL', 'RLS · trigger · fungsi · pg_cron', 'hijau'), t(1) + .6);
+    g(kotak(1100, 560, 270, 90, 'Google Apps Script', 'tarik tiap 10 menit', 'emas'), t(2));
+    g(kotak(1100, 690, 270, 80, 'Google Sheets', 'cermin baca-saja', 'emas'), t(2) + .4);
+    g(kotak(370, 600, 270, 90, 'Open-Meteo · CDN', 'cuaca · pdf.js · OCR'), t(2) + .6);
+    g(kotak(740, 640, 280, 90, 'Edge Function notifikasi', 'belum diaktifkan', 'abu'), t(3) > .2 ? t(3) : t(2) + 1);
+    const ps = [['M280 375H368', .6], ['M640 360L738 220', t(1)], ['M640 375H738', t(1)], ['M640 395L738 520', t(1)], ['M1020 370H1098', t(1) + .6], ['M1235 560V462', t(2)], ['M1235 690V652', t(2) + .4], ['M505 450V598', t(2) + .6]];
+    ps.forEach(([d, tm]) => { const p = sv('path', { d, class: 'panah' + (d === 'M1235 560V462' ? ' putus' : '') }); g(p, tm); });
+    animasiPaket(s, 'M280 375H368L640 375H738L1020 370H1098', 3.2, t(1) + 1.2);
+    animasiPaket(s, 'M1235 560V462', 1.6, t(2) + 1);
+  },
+  erd(T) {
+    tambah(muncul(el('div', { class: 'judulAtas', text: 'Relasi tabel utama (foreign key nyata dari skema)' }), .1));
+    const s = svgDasar();
+    const tb = (x, y, nama, kol, t) => { const h = 34 + kol.length * 22; const g = sv('g', { class: 'tabel xo', transform: `translate(${x} ${y})` }, sv('rect', { class: 'b', width: 230, height: h, rx: 8 }), sv('rect', { class: 'h', width: 230, height: 32, rx: 8 }), sv('text', { class: 't', x: 12, y: 22, text: nama }), kol.map((c, i) => sv('text', { class: 'c teks-kode', x: 12, y: 54 + i * 22, text: c }))); s.append(g); on(g, t); return { x, y, w: 230, h }; };
+    const t = i => Math.max(.2, (T[i] || 0) - .2);
+    const PR = tb(90, 120, 'profil', ['id → auth.users', 'peran', 'unit_id → unit'], .4);
+    const UN = tb(90, 330, 'unit', ['id', 'kode, nama'], .7);
+    const LP = tb(430, 250, 'laporan', ['id, nomor', 'unit_id → unit', 'pelapor_id → profil', 'pj_id → profil', 'dampak, kemungkinan, skor'], t(1));
+    const TL = tb(430, 520, 'tindak_lanjut', ['laporan_id → laporan', 'level, bukti'], t(1) + .3);
+    const IV = tb(770, 120, 'investigasi', ['laporan_id → laporan', 'kronologi (jsonb)', 'lima_why (jsonb)', 'fishbone (jsonb)'], t(1) + .6);
+    const CP = tb(1110, 120, 'capa', ['investigasi_id', 'laporan_id', 'kegiatan_id', 'pj_id, status'], t(1) + .9);
+    const JS = tb(770, 400, 'jsa', ['unit_id, langkah', '(tanpa laporan_id)'], t(3));
+    const IZ = tb(1110, 360, 'izin_kerja', ['jsa_id → jsa', 'laporan_id → laporan', 'jenis → jenis_izin', 'status'], t(3) + .3);
+    const KG = tb(770, 620, 'kegiatan', ['tipe toolbox/pelatihan', 'laporan_id'], t(3) + .7);
+    const KP = tb(1110, 620, 'kegiatan_peserta', ['kegiatan_id', 'kehadiran, nilai', 'kompetensi'], t(3) + 1);
+    const r = (d, tm) => { const p = sv('path', { d, class: 'relasi xo' }); s.append(p); on(p, tm); };
+    r('M320 160C380 160 380 300 430 300', t(1)); r('M320 360H430', t(1)); r('M545 405V520', t(1) + .3); r('M660 300C720 300 720 160 770 160', t(1) + .6); r('M1000 160H1110', t(1) + .9);
+    r('M1000 440H1110', t(3) + .3); r('M660 320C1050 320 1060 400 1110 410', t(3) + .3); r('M1000 660H1110', t(3) + 1); r('M890 620C890 300 1180 300 1200 270', t(3) + .7);
+    const cat = tambah(muncul(el('div', { class: 'catatan', html: 'Sumber: <span class="teks-kode">information_schema</span> basis data uji yang dibangun dari migrasi repositori · RCA disimpan sebagai JSON di <span class="teks-kode">investigasi</span>' }), t(2)));
+  },
+  alur(T) { // alur insiden 14 langkah
+    tambah(muncul(el('div', { class: 'judulAtas', text: 'Alur data: dari laporan kejadian sampai penutupan' }), .1));
+    const L = ['Masuk (Auth)', 'Lapor kejadian', 'Validasi di peramban', 'RPC kirim_laporan', 'Simpan + nomor + status', 'Trigger notifikasi wajib', 'K3 membuka laporan', 'Mulai investigasi', 'Kronologi · 5 Why · Fishbone', 'CAPA dibuat', 'Persetujuan (K3 ≠ ketua)', 'CAPA selesai + bukti', 'Verifikasi efektivitas', 'Investigasi ditutup · dasbor'];
+    const wadah = tambah(el('div', { style: 'position:absolute;left:80px;right:80px;top:150px;display:grid;grid-template-columns:repeat(7,1fr);gap:18px 16px' }));
+    const cue = [0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3];
+    L.forEach((t, i) => { const k = el('div', { class: 'kartu x', style: 'padding:18px 16px;min-height:150px;transform:translateY(20px)' + (i >= 9 ? ';border-color:rgba(245,183,0,.6)' : '') }, el('div', { style: 'font-size:34px;font-weight:700;color:' + (i >= 9 ? '#F5B700' : '#e5525d'), text: String(i + 1) }), el('div', { style: 'font-size:19px;font-weight:600;margin-top:8px', text: t }));
+      wadah.append(k); const base = (T[cue[i]] || 0); const urut = L.filter((_, j) => cue[j] === cue[i]).indexOf(t); on(k, base + .2 + urut * 1.1); });
+    tambah(muncul(el('div', { class: 'catatan', text: 'Setiap langkah di bawah garis kuning dijaga aturan di server: tanpa CAPA tidak dapat diajukan, ketua tim tidak dapat menyetujui sendiri.' }), (T[2] || 0) + 1));
+  },
+  aman(T) {
+    tambah(muncul(el('div', { class: 'judulAtas', text: 'Autentikasi & otorisasi' }), .1));
+    const s = svgDasar(); const g = (e, t) => { e.classList.add('xo'); s.append(e); on(e, t); return e; };
+    const t = i => Math.max(.2, (T[i] || 0) - .3);
+    g(kotak(80, 200, 220, 90, 'Masuk', 'email + sandi'), .4);
+    g(kotak(380, 200, 250, 90, 'Supabase Auth', 'token JWT (aal1)'), 1);
+    g(kotak(710, 200, 250, 90, 'MFA (TOTP)', 'wajib bagi K3RS → aal2', 'emas'), 1.8);
+    g(kotak(1040, 200, 300, 90, 'Permintaan API', 'Authorization: Bearer JWT'), t(1));
+    g(kotak(380, 420, 250, 120, 'Petugas', 'laporan milik sendiri'), t(1) + .4);
+    g(kotak(710, 420, 250, 120, 'PJ unit', 'laporan unit & tugasnya', 'emas'), t(1) + .7);
+    g(kotak(1040, 420, 300, 120, 'K3RS', 'seluruh data (dengan aal2)', 'merah'), t(1) + 1);
+    g(kotak(380, 620, 960, 90, 'PostgreSQL Row Level Security', 'fn_peran() · fn_unit() · auth.uid() — dievaluasi di server untuk setiap baris', 'hijau'), t(1) + 1.4);
+    [['M300 245H378', .9], ['M630 245H708', 1.6], ['M960 245H1038', t(1)], ['M1190 290V330H505V418', t(1) + .4], ['M1190 330H835V418', t(1) + .7], ['M1190 330V418', t(1) + 1]].forEach(([d, tm]) => g(sv('path', { d, class: 'panah' }), tm));
+    const kunci = tambah(muncul(el('div', { class: 'catatan', html: 'Frontend hanya memuat kunci publik <b>anon</b>. Kunci <b>service role</b> hanya untuk fungsi server (tidak pernah di peramban).' }), t(2)));
+  },
+  ponsel(T) {
+    partikel(20);
+    tambah(el('div', { style: 'position:absolute;left:810px;top:24px;width:370px;height:762px;border-radius:52px;background:#05080e;box-shadow:0 0 0 2px rgba(255,255,255,.18),0 40px 90px rgba(0,0,0,.6)' }));
+    tambah(el('div', { style: 'position:absolute;left:130px;top:270px;width:600px' }, el('div', { class: 'kicker', text: 'Progressive Web App' }), el('div', { style: 'font-size:52px;font-weight:700;margin:16px 0 18px;line-height:1.1', text: 'Dari komputer hingga ponsel' }), el('div', { class: 'sub', text: 'Tampilan menyesuaikan layar; dapat dipasang ke layar utama tanpa toko aplikasi.' })));
+  },
+  rencana(T) {
+    partikel(15);
+    tambah(muncul(el('div', { class: 'judulAtas', text: 'Fitur aktif vs. rencana pengembangan' }), .1));
+    const kol = tambah(el('div', { class: 'kolom2' }));
+    const kiri = el('div', { class: 'kartu baik x', style: 'transform:translateX(-30px);border-color:rgba(63,191,127,.6)' }, el('h3', { text: 'Aktif & teruji (lingkungan uji)' }),
+      ['Pelaporan, risk register, JSA, inspeksi', 'Investigasi, RCA, CAPA, izin kerja', 'Pelatihan & toolbox, notifikasi di aplikasi', 'Sinkron Google Sheets (Apps Script)'].map(t => el('div', { class: 'butir' }, el('span', { class: 'tnd', style: 'background:#2f9e68', text: '✓' }), t)));
+    const kanan = el('div', { class: 'kartu buruk x', style: 'transform:translateX(30px);border-color:rgba(245,183,0,.6)' }, el('h3', { text: 'Rencana — belum aktif' }),
+      ['Notifikasi email & push (kode ada, belum diaktifkan)', 'Matriks risiko 5×5 per sel sesuai RS', 'Penilaian risiko inherent & residual', 'Ekspor format register 25 kolom'].map(t => el('div', { class: 'butir' }, el('span', { class: 'tnd', style: 'background:#7a5d00;color:#fff', text: '…' }), t)));
+    kol.append(kiri, kanan); on(kiri, .4); on(kanan, 1.6);
+    tambah(muncul(el('div', { class: 'catatan', text: 'Status produksi (Supabase & Apps Script di akun pemilik) belum diverifikasi langsung dalam pembuatan video ini.' }), 3));
+  },
+  tutup2(T) { ADEGAN.tutup(T.length > 1 ? T : [0, 3]); }
+};
+window.mulai = cfg => { document.body.classList.add('go'); (ADEGAN[cfg.a] || ADEGAN.buka)(cfg.t || [0]); };
+if (Q.get('auto')) mulai({ a: Q.get('a'), t: JSON.parse(Q.get('t') || '[0,3,6,9]') });
+</script></body></html>

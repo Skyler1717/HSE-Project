@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>Panel kode</title>
+
+<style>
+@font-face{font-family:InterV;src:url(../../../fonts/inter-semibold.woff) format('woff');font-weight:600}
+@font-face{font-family:InterV;src:url(../../../fonts/inter-regular.woff) format('woff');font-weight:400}
+*{box-sizing:border-box;margin:0}
+html,body{width:1440px;height:810px;overflow:hidden;background:#0b111c;color:#e6edf3;font-family:InterV,sans-serif}
+.latar{position:absolute;inset:0;background:radial-gradient(1000px 600px at 80% 0%,#1d2b45 0%,#0b111c 65%)}
+.judul{position:absolute;left:60px;top:34px;right:60px;display:flex;align-items:baseline;gap:18px}
+.judul b{font-size:30px;font-weight:600}
+.judul span{font-size:18px;color:#9fb2cc}
+.jendela{position:absolute;left:60px;right:60px;top:96px;bottom:40px;border-radius:14px;background:#0d1117;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08);overflow:hidden}
+.tab{height:42px;background:#161b22;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #30363d;font-family:'DejaVu Sans Mono',monospace;font-size:16px;color:#c9d1d9}
+.tab i{width:12px;height:12px;border-radius:50%;background:#ff5f57;display:inline-block}.tab i:nth-child(2){background:#febc2e}.tab i:nth-child(3){background:#28c840;margin-right:14px}
+.isi{position:absolute;top:42px;left:0;right:0;bottom:0;overflow:hidden}
+.gulung{position:absolute;left:0;right:0;top:0;transition:transform 1.1s cubic-bezier(.4,0,.2,1)}
+.baris{display:flex;font-family:'DejaVu Sans Mono',monospace;font-size:19px;line-height:30px;white-space:pre;transition:opacity .5s,background .5s}
+.baris .no{width:70px;flex:none;text-align:right;padding-right:20px;color:#6e7681;user-select:none}
+.baris .kd{flex:1;padding-right:20px;overflow:hidden;text-overflow:ellipsis}
+.redup .baris{opacity:.38}.redup .baris.fokus{opacity:1;background:rgba(56,139,253,.13)}
+.label{position:absolute;right:30px;max-width:560px;background:#B8202E;color:#fff;font-family:InterV;font-size:20px;font-weight:600;padding:12px 18px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);opacity:0;transform:translateY(10px);transition:all .5s}
+.label.on{opacity:1;transform:none}
+.term{font-family:'DejaVu Sans Mono',monospace;font-size:19px;line-height:29px;white-space:pre-wrap;padding:20px 26px;color:#d1d9e0}
+.term .p{color:#3fb950}.term .c{color:#fff}.term .ok{color:#3fb950}.term .peringatan{color:#F5B700}
+.kursor{display:inline-block;width:10px;height:22px;background:#c9d1d9;vertical-align:-4px;animation:kedip 1s steps(1) infinite}
+@keyframes kedip{50%{opacity:0}}
+</style></head>
+<body><div class="latar"></div>
+<div class="judul"><b id="j"></b><span id="js"></span></div>
+<div class="jendela"><div class="tab"><i></i><i></i><i></i><span id="berkas"></span></div><div class="isi" id="isi"></div></div>
+<script>
+const tunda = ms => new Promise(r => setTimeout(r, ms));
+window.mulai = async d => {
+  document.getElementById('j').textContent = d.judul || ''; document.getElementById('js').textContent = d.sub || '';
+  document.getElementById('berkas').textContent = d.berkas || '';
+  const isi = document.getElementById('isi');
+  if (d.mode === 'kode') {
+    const g = document.createElement('div'); g.className = 'gulung'; isi.append(g);
+    d.html.forEach((h, i) => { const b = document.createElement('div'); b.className = 'baris'; b.dataset.n = d.mulaiBaris + i; b.innerHTML = '<span class="no">' + (d.mulaiBaris + i) + '</span><span class="kd">' + (h || ' ') + '</span>'; g.append(b); });
+    const tinggiIsi = isi.clientHeight, lb = 30;
+    const lab = document.createElement('div'); lab.className = 'label'; isi.append(lab);
+    const t0 = performance.now();
+    for (const f of d.fokus || []) {
+      const tunggu = f.t * 1000 - (performance.now() - t0); if (tunggu > 0) await tunda(tunggu);
+      const ia = f.a - d.mulaiBaris, ib = f.b - d.mulaiBaris;
+      const tengah = ((ia + ib) / 2) * lb; let y = Math.max(0, Math.min(tengah - tinggiIsi / 2 + lb, d.html.length * lb - tinggiIsi + 20));
+      g.style.transform = 'translateY(' + (-y) + 'px)';
+      isi.classList.add('redup'); g.querySelectorAll('.baris').forEach((b, i) => b.classList.toggle('fokus', i >= ia && i <= ib));
+      lab.classList.remove('on');
+      if (f.label) { await tunda(700); lab.textContent = f.label; const yb = (ib + 1) * lb - y + 12; lab.style.top = Math.min(tinggiIsi - 70, Math.max(10, yb)) + 'px'; lab.classList.add('on'); }
+    }
+  } else if (d.mode === 'term') {
+    const t = document.createElement('div'); t.className = 'term'; isi.append(t);
+    for (const blok of d.blok) {
+      const p = document.createElement('div'); p.innerHTML = '<span class="p">$ </span><span class="c"></span>'; t.append(p);
+      for (const ch of blok.perintah) { p.lastChild.textContent += ch; await tunda(28); }
+      await tunda(350);
+      const o = document.createElement('div'); t.append(o);
+      for (const baris of blok.keluaran.split('\n')) { const s = document.createElement('div'); s.textContent = baris; if (/LULUS|PASS|✓|selesai|success/i.test(baris)) s.className = 'ok'; if (/belum|BLOCKED|FAIL/i.test(baris)) s.className = 'peringatan'; o.append(s); await tunda(blok.jeda || 60); }
+      await tunda(blok.henti || 500);
+    }
+    const k = document.createElement('span'); k.className = 'kursor'; t.append(k);
+  }
+};
+</script></body></html>

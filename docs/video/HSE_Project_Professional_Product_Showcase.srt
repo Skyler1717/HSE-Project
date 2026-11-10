@@ -1,0 +1,196 @@
+1
+00:00:00,450 --> 00:00:05,697
+Di tengah kompleksitas operasional organisasi,
+pengelolaan keselamatan dan kesehatan kerja
+
+2
+00:00:05,747 --> 00:00:09,582
+membutuhkan sistem yang terintegrasi, cepat,
+dan dapat diandalkan.
+
+3
+00:00:09,992 --> 00:00:14,837
+Inilah HSE Project, solusi digital untuk
+mendukung transformasi manajemen K3.
+
+4
+00:00:15,887 --> 00:00:20,828
+Pengelolaan K3 sering menghadapi tantangan:
+pencatatan yang terpisah, proses pelaporan
+
+5
+00:00:20,878 --> 00:00:23,613
+yang panjang, tindak lanjut yang sulit
+dipantau,
+
+6
+00:00:24,023 --> 00:00:27,462
+serta data yang belum diolah menjadi informasi
+yang bermanfaat.
+
+7
+00:00:27,872 --> 00:00:31,119
+HSE Project dirancang untuk menyatukan proses
+tersebut.
+
+8
+00:00:32,169 --> 00:00:37,259
+HSE Project menghadirkan pengelolaan K3 dalam
+satu platform digital yang dapat dibuka di
+
+9
+00:00:37,309 --> 00:00:38,602
+komputer maupun ponsel.
+
+10
+00:00:39,012 --> 00:00:44,021
+Modulnya mendukung identifikasi bahaya,
+penilaian risiko, pelaporan, pemantauan, dan
+
+11
+00:00:44,071 --> 00:00:46,430
+pengelolaan informasi keselamatan kerja.
+
+12
+00:00:47,480 --> 00:00:52,293
+Petugas melaporkan bahaya dalam beberapa
+ketukan, dan sistem menolak teks yang memuat
+
+13
+00:00:52,343 --> 00:00:53,265
+identitas pasien.
+
+14
+00:00:53,675 --> 00:00:58,819
+Setiap laporan masuk ke risk register, dinilai
+dengan dampak dan kemungkinan, lalu ditugaskan
+
+15
+00:00:58,869 --> 00:01:01,331
+kepada penanggung jawab dengan tenggat waktu.
+
+16
+00:01:02,381 --> 00:01:07,377
+Job Safety Analysis menyusun langkah kerja dan
+bahaya secara otomatis, serta memperingatkan
+
+17
+00:01:07,427 --> 00:01:09,650
+bila pengendalian hanya mengandalkan APD.
+
+18
+00:01:10,060 --> 00:01:15,092
+Inspeksi terpandu menghitung skor kepatuhan,
+dan izin kerja tidak dapat dimulai sebelum
+
+19
+00:01:15,142 --> 00:01:18,831
+disahkan. Setiap petugas dapat menghentikan
+pekerjaan berbahaya.
+
+20
+00:01:19,881 --> 00:01:23,475
+Laporan kejadian langsung memberi notifikasi
+kepada tim K3.
+
+21
+00:01:23,885 --> 00:01:28,813
+Investigasi terstruktur dengan kronologi,
+analisis 5 Why, dan diagram Fishbone, lalu
+
+22
+00:01:28,863 --> 00:01:32,192
+dilanjutkan dengan CAPA yang diverifikasi
+efektivitasnya.
+
+23
+00:01:33,242 --> 00:01:38,316
+Toolbox meeting dan pelatihan dicatat dengan
+presensi QR, nilai pre-test dan post-test,
+
+24
+00:01:38,366 --> 00:01:39,907
+serta penilaian kompetensi.
+
+25
+00:01:40,317 --> 00:01:45,318
+SOP dan dokumen terkendali, laporan bulanan
+tersusun otomatis, dan hak akses diatur
+
+26
+00:01:45,368 --> 00:01:46,962
+berdasarkan peran pengguna.
+
+27
+00:01:48,012 --> 00:01:52,495
+HSE Intelligence membaca pola dari data
+laporan, dan pencarian cerdas menemukan
+
+28
+00:01:52,545 --> 00:01:55,077
+laporan maupun SOP dengan bahasa sehari-hari.
+
+29
+00:01:55,487 --> 00:02:00,178
+Analisis ini berbasis aturan yang transparan,
+bukan kecerdasan buatan generatif.
+
+30
+00:02:01,228 --> 00:02:06,652
+Keunggulan HSE Project terletak pada integrasi
+proses K3 dalam satu alur: dari laporan,
+
+31
+00:02:06,702 --> 00:02:08,917
+analisis, sampai tindakan perbaikan.
+
+32
+00:02:09,327 --> 00:02:14,205
+Aplikasi berjalan di peramban tanpa instalasi,
+hak akses dijaga di basis data, setiap
+
+33
+00:02:14,255 --> 00:02:17,684
+perubahan tercatat, dan data dapat disalin ke
+Google Sheets.
+
+34
+00:02:18,094 --> 00:02:23,140
+Sistem ini dirancang untuk berkembang bersama
+kebutuhan operasional, bukan sekadar menjadi
+
+35
+00:02:23,190 --> 00:02:24,669
+tempat penyimpanan laporan.
+
+36
+00:02:25,719 --> 00:02:30,786
+Dengan informasi yang lebih terstruktur, HSE
+Project berpotensi meningkatkan efisiensi
+
+37
+00:02:30,836 --> 00:02:33,285
+administrasi, mempercepat akses informasi,
+
+38
+00:02:33,695 --> 00:02:38,707
+mendukung pemantauan tindakan keselamatan, dan
+menyediakan dasar pengambilan keputusan K3
+
+39
+00:02:38,757 --> 00:02:39,617
+yang lebih baik.
+
+40
+00:02:40,667 --> 00:02:45,952
+Transformasikan pengelolaan K3 menjadi lebih
+terstruktur, terintegrasi, dan berorientasi
+
+41
+00:02:46,002 --> 00:02:47,710
+pada perbaikan berkelanjutan.
+
+42
+00:02:48,120 --> 00:02:51,666
+HSE Project. Smarter Safety. Better
+Management. Safer Workplace.
