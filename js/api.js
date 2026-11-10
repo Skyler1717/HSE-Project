@@ -7,6 +7,9 @@
   'use strict';
   const CFG = window.K3_CONFIG || {};
   const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
+  // kode_hadir (QR presensi) sengaja tidak dibaca: hanya penyelenggara lewat fungsi kegiatan_kode()
+  const KOLOM_KEGIATAN = 'id,nomor,tipe,judul,kategori,tujuan,topik,materi,pemateri,supervisor_id,unit_id,lokasi,mulai,durasi_menit,status,catatan,isu_keselamatan,laporan_id,berlaku_bulan,dibuat_oleh,dibuat_pada,diperbarui_pada';
+  const kolomDefault = t => t === 'laporan' ? KOLOM_LAPORAN : t === 'kegiatan' ? KOLOM_KEGIATAN : '*';
   const KOLOM_LAPORAN = 'id,nomor,jenis,kategori_kode,unit_id,lokasi,uraian,mendesak,anonim,dampak,kemungkinan,skor,status,pj_id,target_tanggal,level_pengendalian,foto_path,ai_kategori_saran,ai_saran_diterima,contoh,tanggal_lapor,dibuat_pada,diperbarui_pada,ditutup_pada';
 
   class GalatJaringan extends Error { constructor(m) { super(m || 'Tidak ada koneksi internet'); this.jaringan = true; } }
@@ -171,7 +174,7 @@
       async halaman(tabel, o) {
         if (!TABEL_HALAMAN.includes(tabel)) throw new Error('Tabel tidak dikenal');
         o = o || {}; const ukuran = Math.min(100, Math.max(1, o.ukuran || 25)), hal = Math.max(1, o.halaman || 1);
-        let q = sb.from(tabel).select(o.kolom || (tabel === 'laporan' ? KOLOM_LAPORAN : '*'), { count: 'exact' });
+        let q = sb.from(tabel).select(o.kolom || kolomDefault(tabel), { count: 'exact' });
         q = terapkanFilter(q, o);
         q = q.order(o.urut || 'dibuat_pada', { ascending: !!o.naik, nullsFirst: false });
         if ((o.urut || 'dibuat_pada') !== 'id' && tabel !== 'kegiatan_peserta') q = q.order('id', { ascending: true });
@@ -182,17 +185,17 @@
         const out = []; for (let hal = 1; hal <= 50; hal++) { const r = await this.halaman(tabel, Object.assign({}, o, { halaman: hal, ukuran: 100 })); out.push(...r.baris); if (out.length >= r.total || !r.baris.length) break; }
         return out;
       },
-      async ambilSatu(tabel, id) { if (!TABEL_HALAMAN.includes(tabel)) throw new Error('Tabel tidak dikenal'); try { return cek(await sb.from(tabel).select(tabel === 'laporan' ? KOLOM_LAPORAN : '*').eq('id', id).maybeSingle()); } catch (e) { throw terjemahGalat(e); } },
+      async ambilSatu(tabel, id) { if (!TABEL_HALAMAN.includes(tabel)) throw new Error('Tabel tidak dikenal'); try { return cek(await sb.from(tabel).select(kolomDefault(tabel)).eq('id', id).maybeSingle()); } catch (e) { throw terjemahGalat(e); } },
       async simpanBaris(tabel, d) {
         if (!TABEL_TULIS.includes(tabel)) throw new Error('Tabel tidak dikenal');
         const data = Object.assign({}, d); ['dibuat_oleh', 'dibuat_pada', 'diperbarui_pada', 'nomor'].forEach(k => delete data[k]);
         try {
-          if (data.id !== undefined && data.id !== null) { const id = data.id; delete data.id; return cek(await sb.from(tabel).update(data).eq('id', id).select().single()); }
-          delete data.id; return cek(await sb.from(tabel).insert(data).select().single());
+          if (data.id !== undefined && data.id !== null) { const id = data.id; delete data.id; return cek(await sb.from(tabel).update(data).eq('id', id).select(kolomDefault(tabel)).single()); }
+          delete data.id; return cek(await sb.from(tabel).insert(data).select(kolomDefault(tabel)).single());
         } catch (e) { throw terjemahGalat(e); }
       },
       async hapusBaris(tabel, id) { if (!['kegiatan_peserta', 'push_langganan'].includes(tabel)) throw new Error('Tidak diizinkan'); try { cek(await sb.from(tabel).delete().eq('id', id)); } catch (e) { throw terjemahGalat(e); } },
-      async daftarDari(tabel, kolom, nilai, urut) { if (!TABEL_HALAMAN.includes(tabel)) throw new Error('Tabel tidak dikenal'); try { return cek(await sb.from(tabel).select('*').eq(kolom, nilai).order(urut || 'id').limit(500)); } catch (e) { throw terjemahGalat(e); } },
+      async daftarDari(tabel, kolom, nilai, urut) { if (!TABEL_HALAMAN.includes(tabel)) throw new Error('Tabel tidak dikenal'); try { return cek(await sb.from(tabel).select(kolomDefault(tabel)).eq(kolom, nilai).order(urut || 'id').limit(500)); } catch (e) { throw terjemahGalat(e); } },
       izinProses: (id, aksi, catatan, data) => panggil('izin_proses', { p_id: id, p_aksi: aksi, p_catatan: catatan || '', p_data: data || {} }),
       izinRingkas: (dari, sampai) => panggil('izin_ringkas', { p_dari: dari || null, p_sampai: sampai || null }),
       kegiatanRingkas: (dari, sampai) => panggil('kegiatan_ringkas', { p_dari: dari || null, p_sampai: sampai || null }),

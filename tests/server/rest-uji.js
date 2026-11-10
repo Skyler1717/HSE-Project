@@ -16,6 +16,15 @@ const berkas = new Map();
 const kirim = (res, status, body, hdr) => { res.writeHead(status, Object.assign({ 'content-type': 'application/json', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*', 'access-control-expose-headers': 'content-range' }, hdr || {})); res.end(body === undefined ? '' : (typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body))); };
 const galat = (res, e) => kirim(res, e.code === '42501' ? 403 : e.http || 400, { code: e.code || 'PGRST', message: e.message, details: e.detail || null, hint: e.hint || null });
 
+const _tipe = new Map(), _pk = new Map();
+async function tipeKolom(t) {
+  if (!_tipe.has(t)) _tipe.set(t, Object.fromEntries((await pool.query("select column_name, data_type from information_schema.columns where table_schema = 'public' and table_name = $1", [t])).rows.map(r => [r.column_name, r.data_type])));
+  return _tipe.get(t);
+}
+async function kunciUtama(t) {
+  if (!_pk.has(t)) _pk.set(t, (await pool.query("select a.attname from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey) where i.indrelid = ('public.' || $1)::regclass and i.indisprimary", [t])).rows.map(r => r.attname));
+  return _pk.get(t);
+}
 async function transaksi(c, fn) {
   const k = await pool.connect();
   try {
@@ -77,12 +86,21 @@ async function tabel(req, res, c, nama, q, body) {
   if (req.method === 'POST') {
     const data = Array.isArray(body) ? body : [body]; const kol = [...new Set(data.flatMap(Object.keys))];
     kol.forEach(x => { if (!ID.test(x)) throw new Error('kolom'); });
-    const nilai = data.map(o => '(' + kol.map(x => { p.push(o[x] !== null && typeof o[x] === 'object' ? JSON.stringify(o[x]) : o[x]); return '$' + p.length; }).join(',') + ')').join(',');
-    const rows = await transaksi(c, async k => (await k.query(`insert into public.${nama}(${kol.join(',')}) values ${nilai}${/return=representation/.test(pref) ? ' returning ' + sel : ''}`, p)).rows);
+    const tipe = await tipeKolom(nama);
+    const nilai = data.map(o => '(' + kol.map(x => { const v = o[x]; p.push(v !== null && typeof v === 'object' && !(Array.isArray(v) && tipe[x] === 'ARRAY') ? JSON.stringify(v) : v); return '$' + p.length; }).join(',') + ')').join(',');
+    let konflik = '';
+    if (/resolution=(merge|ignore)-duplicates/.test(pref)) {
+      const target = q.get('on_conflict') ? q.get('on_conflict').split(',') : await kunciUtama(nama);
+      target.forEach(x => { if (!ID.test(x)) throw new Error('kolom'); });
+      const ubah = kol.filter(x => !target.includes(x));
+      konflik = ' on conflict (' + target.join(',') + ') ' + (/ignore-duplicates/.test(pref) || !ubah.length ? 'do nothing' : 'do update set ' + ubah.map(x => x + ' = excluded.' + x).join(', '));
+    }
+    const rows = await transaksi(c, async k => (await k.query(`insert into public.${nama}(${kol.join(',')}) values ${nilai}${konflik}${/return=representation/.test(pref) ? ' returning ' + sel : ''}`, p)).rows);
     return /return=representation/.test(pref) ? balas(rows) : kirim(res, 201, '');
   }
   if (req.method === 'PATCH') {
-    const set = Object.keys(body).map(x => { if (!ID.test(x)) throw new Error('kolom'); p.push(body[x] !== null && typeof body[x] === 'object' ? JSON.stringify(body[x]) : body[x]); return x + ' = $' + p.length; }).join(', ');
+    const tipe = await tipeKolom(nama);
+    const set = Object.keys(body).map(x => { if (!ID.test(x)) throw new Error('kolom'); p.push(body[x] !== null && typeof body[x] === 'object' && !(Array.isArray(body[x]) && tipe[x] === 'ARRAY') ? JSON.stringify(body[x]) : body[x]); return x + ' = $' + p.length; }).join(', ');
     const where = bangunWhere(q, p);
     const rows = await transaksi(c, async k => (await k.query(`update public.${nama} set ${set}${where}${/return=representation/.test(pref) ? ' returning ' + sel : ''}`, p)).rows);
     return /return=representation/.test(pref) ? balas(rows) : kirim(res, 204, '');
@@ -98,7 +116,7 @@ async function rpc(res, c, fn, body) {
   const p = []; const arg = Object.keys(body || {}).map(k => { if (!ID.test(k)) throw new Error('arg'); const v = body[k]; p.push(v !== null && typeof v === 'object' ? (Array.isArray(v) && fn === 'notif_tandai_dibaca' ? '{' + v.join(',') + '}' : JSON.stringify(v)) : v); return k + ' => $' + p.length; }).join(', ');
   const setof = info.proretset || info.tipe === 'record';
   const r = await transaksi(c, async k => (await k.query(setof ? `select * from public.${fn}(${arg})` : `select public.${fn}(${arg}) as v`, p)).rows);
-  kirim(res, 200, setof ? r : r[0].v);
+  kirim(res, 200, JSON.stringify(setof ? r : r[0].v));      // seperti PostgREST: skalar dikirim sebagai JSON
 }
 
 async function auth(req, res, url, body) {

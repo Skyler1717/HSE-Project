@@ -27,5 +27,9 @@ async function masuk(ctx, email) {
   await p.click('form button[type=submit]'); await p.waitForFunction(() => /beranda/.test(location.hash), null, { timeout: 15000 });
   p.galat = galat; return p;
 }
-const buka = async (p, rute) => { await p.goto(APP + '/#' + rute); await p.waitForTimeout(700); };
+const buka = async (p, rute) => {
+  const sama = await p.evaluate(r => location.hash === '#' + r, rute).catch(() => false);
+  if (sama) await p.evaluate(() => window.K3App.jalankan()); else await p.goto(APP + '/#' + rute);
+  await p.waitForTimeout(700);
+};
 module.exports = { konteks, masuk, buka, APP, SANDI };
