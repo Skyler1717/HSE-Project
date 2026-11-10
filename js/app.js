@@ -260,7 +260,8 @@
     const g = [
       [null, [['/beranda', 'beranda', 'Beranda'], ['/intel', 'otak', 'HSE Intelligence'], ['/cari', 'cari', 'Pencarian cerdas']]],
       ['Operasional K3', [staf ? ['/semua', 'daftar', p === 'k3rs' ? 'Laporan & risk register' : 'Laporan unit'] : null, staf ? ['/tugas', 'tugas', 'Tugas & CAPA'] : null,
-        ['/jsa', 'jsa', 'JSA'], ['/inspeksi', 'inspeksi', 'Inspeksi'], ['/pemantauan', 'monitor', 'Pemantauan K3']]],
+        ['/jsa', 'jsa', 'JSA'], ['/izin', 'dokumen', 'Izin kerja (PTW)'], ['/inspeksi', 'inspeksi', 'Inspeksi'], ['/pemantauan', 'monitor', 'Pemantauan K3'],
+        staf ? ['/investigasi', 'cari', 'Investigasi & RCA'] : null, staf ? ['/capa', 'tugas', 'CAPA lintas modul'] : null, ['/kegiatan', 'kalender', 'Pelatihan & toolbox']]],
       ['Dokumen & laporan', [['/sop', 'sop', 'SOP & dokumen'], staf ? ['/dasbor', 'grafik', 'Dasbor'] : null, staf ? ['/bulanan', 'bulanan', 'Laporan bulanan'] : null, p === 'pj_unit' ? ['/ekspor', 'unduh', 'Ekspor data'] : null]],
       ['Laporan saya', [['/laporan-saya', 'dokumen', 'Laporan saya'], ['/lacak', 'kunci', 'Lacak dengan kode'], ['/asisten', 'robot', 'Asisten K3']]],
       p === 'k3rs' ? ['Administrasi', [['/pengguna', 'orang', 'Pengguna & peran'], ['/pengaturan', 'atur', 'Pengaturan'], ['/sinkron', 'sinkron', 'Google Sheets'], ['/log', 'riwayat', 'Log aktivitas'], ['/admin', 'kisi', 'Semua menu admin']]] : null,
@@ -675,7 +676,7 @@
     if (isK3 && !['tertutup', 'tidak_dilanjutkan'].includes(l.status)) aksi.push(await formTugaskan(l));
     if ((isK3 || (p === 'pj_unit' && sayaPJ)) && ['ditugaskan', 'dalam_tindak_lanjut', 'terkendali_sementara'].includes(l.status)) aksi.push(formTL(l));
     aksi.push(formStatus(l, d.tindak_lanjut, isK3, p === 'pj_unit' && sayaPJ));
-    tampil(halaman('Detail laporan', '', [h('div', { class: 'detail-grid' }, h('div', { class: 'detail-utama' }, info, foto, rincian, linimasa, tlKotak, peran() === 'k3rs' && window.K3App.panelJejak ? window.K3App.panelJejak('laporan', l.id) : null), h('div', { class: 'detail-samping' }, aksi))], { kembali: true }));
+    tampil(halaman('Detail laporan', '', [h('div', { class: 'detail-grid' }, h('div', { class: 'detail-utama' }, info, foto, rincian, linimasa, tlKotak, peran() === 'k3rs' && window.K3App.panelJejak ? window.K3App.panelJejak('laporan', l.id) : null), h('div', { class: 'detail-samping' }, aksi, ['kejadian', 'nyaris_celaka'].includes(l.jenis) && ['k3rs', 'pj_unit'].includes(p) && API.mode !== 'demo' ? h('a', { class: 'btn kedua', href: '#/investigasi?baru=' + encodeURIComponent(l.id) }, ikon('cari'), 'Mulai investigasi') : null))], { kembali: true }));
   }
 
   async function formTugaskan(l) {
@@ -868,7 +869,7 @@
   }
 
   // ---------- Ekspor ----------
-  const VERSI = '2.1.0';
+  const VERSI = '2.2.0';
   function sel(v) { let s = v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function keCSV(baris, kolom) { return '﻿' + [kolom.map(k => sel(k[1])).join(',')].concat(baris.map(r => kolom.map(k => sel(typeof k[0] === 'function' ? k[0](r) : r[k[0]])).join(','))).join('\r\n'); }
   function unduh(nama, isi, tipe) { const b = new Blob([isi], { type: tipe || 'text/csv;charset=utf-8' }); const a = h('a', { href: URL.createObjectURL(b), download: nama }); document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
@@ -1033,7 +1034,7 @@
 
   // Alat bantu untuk modul halaman tambahan (js/modul.js)
   window.K3App = { S, API, h, ikon, IK, badge, badgeStatus, badgeTingkat, tombol, sibuk, bidang, pilih, toast, konfirmasi, tampil, halaman, kosong, pergi, peran, namaUnit, kat, ikonKat, tingkat, kelasTingkat,
-    tgl, LS, SS, PERAN, JENIS, STATUS, LEVEL, ambilLaporan, levelRisiko: s => { const k = kelasTingkat(s); return k === 'rk-x' ? -1 : +k.slice(3); }, unduh, keCSV, KUNCI_DRAF, kunciMerek, lambang, terapkanTema, RUTE, HAK, jalankan, inisial };
+    tgl, LS, SS, PERAN, JENIS, STATUS, LEVEL, ambilLaporan, daftarLaporanEl: (x, k) => daftar(x, k), paramHash, kecilkanFoto, QR, levelRisiko: s => { const k = kelasTingkat(s); return k === 'rk-x' ? -1 : +k.slice(3); }, unduh, keCSV, KUNCI_DRAF, kunciMerek, lambang, terapkanTema, RUTE, HAK, jalankan, inisial };
 
   async function mulai() {
     terapkanTema();

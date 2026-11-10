@@ -494,21 +494,24 @@
   }
   async function perbaruiLonceng() {
     const el = document.querySelector('.lonceng-n'); if (!el || !peran()) return;
-    try { const n = (await daftarNotifikasi()).filter(x => !x.dibaca).length; el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); el.parentElement.setAttribute('aria-label', 'Notifikasi' + (n ? ', ' + n + ' belum dibaca' : '')); } catch (e) { el.hidden = true; }
+    try { const n = (await daftarNotifikasi()).filter(x => !x.dibaca).length + (A.jumlahNotifServer ? await A.jumlahNotifServer() : 0); el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); el.parentElement.setAttribute('aria-label', 'Notifikasi' + (n ? ', ' + n + ' belum dibaca' : '')); } catch (e) { el.hidden = true; }
   }
   // Perbarui lencana setiap kali halaman baru dirender (bukan berdasarkan jeda waktu)
   const wadahApp = document.getElementById('app');
   if (wadahApp && window.MutationObserver) new MutationObserver(() => { const el = document.querySelector('.lonceng-n'); if (el && !el.dataset.diisi) { el.dataset.diisi = '1'; perbaruiLonceng(); } }).observe(wadahApp, { childList: true });
-  async function hNotifikasi() {
+  // Pengingat yang dihitung dari data (bukan dikirim). Dipakai juga oleh pusat notifikasi (tab "Perlu perhatian").
+  async function isiPengingat(w) {
     const N = await daftarNotifikasi();
     const tandai = ids => { const s = new Set(LS.get(KUNCI_BACA(), [])); ids.forEach(i => s.add(i)); LS.set(KUNCI_BACA(), [...s].slice(-1000)); };
-    tampil(halaman('Notifikasi', '/notifikasi', [
-      h('div', { class: 'tombol-baris antara' }, h('p', { class: 'kecil', text: N.filter(x => !x.dibaca).length + ' belum dibaca · dihitung dari data terbaru sesuai hak akses Anda' }),
-        N.length ? tombol([ikon('centang'), 'Tandai semua dibaca'], () => { tandai(N.map(x => x.id)); A.jalankan(); }, 'teks') : null),
+    w.replaceChildren(
+      h('div', { class: 'tombol-baris antara' }, h('p', { class: 'kecil', text: N.filter(x => !x.dibaca).length + ' belum dibaca · dihitung dari data terbaru sesuai hak akses Anda (tidak dikirim lewat email)' }),
+        N.length ? tombol([ikon('centang'), 'Tandai semua dibaca'], () => { tandai(N.map(x => x.id)); isiPengingat(w); }, 'teks') : null),
       N.length ? h('div', { class: 'daftar-peringatan', role: 'list' }, N.map(n => { const el = peringatan(n.tingkat, n.judul, n.isi, n.ik, n.href); if (n.dibaca) el.classList.add('dibaca'); el.addEventListener('click', () => tandai([n.id])); return el; }))
-        : h('section', { class: 'kartu' }, h('p', { class: 'ok-teks' }, ikon('centang'), ' Tidak ada notifikasi. Semua tindakan sesuai jadwal.'))]));
+        : h('section', { class: 'kartu' }, h('p', { class: 'ok-teks' }, ikon('centang'), ' Tidak ada notifikasi. Semua tindakan sesuai jadwal.')));
     setTimeout(perbaruiLonceng, 100);
   }
+  async function hNotifikasi() { const w = h('div'); await isiPengingat(w); tampil(halaman('Notifikasi', '/notifikasi', [w])); }
+  A.isiPengingat = isiPengingat;
   A.daftarNotifikasi = daftarNotifikasi;
 
   // ---------- Daftarkan rute ----------

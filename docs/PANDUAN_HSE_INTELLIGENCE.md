@@ -1,4 +1,4 @@
-# Panduan Aktivasi — HSE Intelligence & Modul K3 (versi 2.0)
+# Panduan Aktivasi — HSE Intelligence & Modul K3 (versi 2.2)
 
 Semua komponen **gratis**: Supabase (paket gratis), GitHub Pages, Open-Meteo (cuaca, tanpa kunci),
 Google Apps Script, serta pustaka sumber terbuka pdf.js, mammoth, dan tesseract.js (OCR) yang berjalan di perangkat pengguna.
@@ -11,7 +11,8 @@ Tidak ada OpenAI atau API berbayar.
 3. Supabase → **SQL Editor** → tempel seluruh isi `supabase/20_modul_hse.sql` → **Run**.
    Hasil benar: *Success*. Bila muncul NOTICE "pg_cron belum dapat diaktifkan", aktifkan pg_cron lalu jalankan ulang berkas yang sama (aman diulang).
 4. Jalankan juga `supabase/21_jejak_dan_dokumen.sql` (jejak perubahan + metadata dokumen; aman diulang; rollback `29b_…`).
-5. Periksa: `select jobname, schedule from cron.job;` → harus ada `hse-laporan-bulanan` dan `hse-hapus-riwayat-ai`.
+5. Jalankan `supabase/23_modul_lanjutan.sql` **setelah 21** (investigasi & RCA, CAPA, izin kerja, toolbox/pelatihan, notifikasi, paginasi; aman diulang; rollback `29c_…`).
+6. Periksa: `select jobname, schedule from cron.job;` → harus ada `hse-laporan-bulanan`, `hse-hapus-riwayat-ai`, dan (setelah 23) job izin kedaluwarsa & notifikasi terjadwal.
 
 Sebelum langkah ini dijalankan, aplikasi tetap berfungsi. Menu JSA, Inspeksi, Pemantauan, dan SOP menampilkan pesan "Modul belum diaktifkan".
 
@@ -69,3 +70,23 @@ Akun yang belum disetujui tidak dapat membaca apa pun. Semua perubahan JSA, insp
 - **Google Apps Script** terhadap basis data sungguhan: 10 pemeriksaan (anti-duplikasi, retry, galat tercatat, tanpa data identitas).
 - **Aplikasi** (mode demo, Chromium): 36 halaman × 3 peran tanpa galat, serta 22 skenario ujung-ke-ujung (tema, JSA, inspeksi terpandu, pemantauan, unggah PDF/DOCX/TXT/PNG/PDF pindaian dengan OCR, pencarian SOP, riwayat, laporan bulanan).
 - **Mode Supabase dengan modul belum aktif**: aplikasi menampilkan pesan, tidak rusak.
+
+
+## 7. Notifikasi email & push (opsional — belum aktif sampai diuji)
+
+Notifikasi **di aplikasi** langsung berfungsi setelah berkas 23 dijalankan. Email dan push **tidak** otomatis tersedia di Supabase; keduanya dikirim oleh Edge Function `kirim-notifikasi` yang membaca antrean `notifikasi_kirim`. Tanpa langkah di bawah, entri antrean tetap tersimpan dan akan berstatus `dilewati — belum dikonfigurasi` bila fungsi dijalankan tanpa kunci. Tidak ada kunci rahasia di frontend.
+
+1. **Email (Resend, paket gratis 3.000 email/bulan):** daftar di resend.com, verifikasi domain pengirim, buat API key.
+2. **Push (VAPID, gratis):** di komputer jalankan `npx web-push generate-vapid-keys`. Kunci **publik** diisi ke `js/config.js` → `VAPID_PUBLIC_KEY` (aman untuk publik). Kunci **privat** hanya menjadi secret Edge Function.
+3. Pasang Supabase CLI, lalu dari akar repo:
+   ```bash
+   supabase login
+   supabase link --project-ref fkynbegfeodymincuucy
+   supabase secrets set NOTIF_CRON_SECRET=<acak-panjang> APP_URL=https://skyler1717.github.io/HSE-Project/ RESEND_API_KEY=<kunci> NOTIF_EMAIL_DARI="HSE K3RS <notifikasi@domain-anda>" VAPID_PUBLIC_KEY=<publik> VAPID_PRIVATE_KEY=<privat> VAPID_SUBJECT=mailto:<email-admin>
+   supabase functions deploy kirim-notifikasi --no-verify-jwt
+   ```
+4. Jalankan `supabase/24_jadwal_kirim_notifikasi.sql` (isi dua nilai Vault sesuai petunjuk di berkas). pg_cron memanggil fungsi tiap menit hanya bila ada antrean.
+5. **Uji nyata:** buat laporan kejadian uji, tunggu 1–2 menit, lalu periksa
+   `select saluran, status, count(*), max(galat) from notifikasi_kirim group by 1,2;` dan kotak masuk email. Saluran baru boleh dianggap aktif setelah status `terkirim` dan email/push benar-benar diterima.
+
+Gagal kirim dicoba ulang otomatis (jeda 10, 20, 40, 80 menit; maksimal 5 kali). Email memakai `Idempotency-Key` per entri sehingga tidak terkirim ganda. Langganan push yang kedaluwarsa (404/410) dihapus otomatis.
