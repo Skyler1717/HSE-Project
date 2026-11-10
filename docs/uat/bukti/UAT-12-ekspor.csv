@@ -1,0 +1,11 @@
+UNIT,NO,KATEGORI RISIKO,SEBAB / URAIAN,AREA / LOKASI,DAMPAK (D),PROBABILITAS (P),SKOR,PERINGKAT RISIKO,OPSI TEKNIK PENGENDALIAN,URAIAN PENANGANAN RISIKO,PEMILIK RISIKO,TARGET WAKTU,STATUS
+IPSRS,K3-261110-0010,Fisik,SIMULASI_UAT [uji validasi uraian kosong],,,,,Belum dinilai,,,,,Baru
+Kesehatan Lingkungan,K3-261110-0009,Limbah,SIMULASI_UAT IPAL tidak dipelihara rutin; kualitas air limbah berisiko (rujukan register MFK R35),IPAL,5,4,20,Sangat Tinggi,,,SIMULASI_UAT PJ Kesling,2026-11-24T00:00:00.000Z,Ditugaskan
+IPSRS,K3-261110-0008,Mekanik / Listrik,SIMULASI_UAT HVAC rusak; sirkulasi udara gedung terganggu (rujukan register MFK R33),Ruang mesin HVAC,3,2,6,Sedang,,,SIMULASI_UAT PJ IPSRS,2026-11-24T00:00:00.000Z,Ditugaskan
+Farmasi,K3-261110-0007,Kimia / B3,SIMULASI_UAT Ruang/lemari penyimpanan B3 belum sesuai standar; risiko tumpahan (rujukan register B3 R.1),Gudang B3 Farmasi,4,4,16,Sangat Tinggi,,,SIMULASI_UAT PJ IPSRS,2026-11-24T00:00:00.000Z,Ditugaskan
+Radiologi,K3-261110-0006,Fisik,SIMULASI_UAT Paparan radiasi pada radiografer bila APD tidak sesuai (rujukan register MFK R28),Ruang X-ray,5,4,20,Sangat Tinggi,,,SIMULASI_UAT PJ IPSRS,2026-11-24T00:00:00.000Z,Ditugaskan
+Gizi,K3-261110-0005,Kebakaran / Darurat,SIMULASI_UAT Bahan mudah terbakar di dapur belum diamankan (rujukan register MFK R27),Dapur Instalasi Gizi,5,2,10,Tinggi,,,SIMULASI_UAT PJ IPSRS,2026-11-24T00:00:00.000Z,Ditugaskan
+Kesehatan Lingkungan,K3-261110-0004,Limbah,SIMULASI_UAT Pemilahan limbah padat tidak sesuai SPO; jarum ditemukan di plastik kuning (rujukan register MFK R25),TPS limbah medis,5,3,15,Sangat Tinggi,,,SIMULASI_UAT PJ Kesling,2026-11-24T00:00:00.000Z,Ditugaskan
+IPSRS,K3-261110-0003,Mekanik / Listrik,SIMULASI_UAT Baterai lift-bed belum diganti; ARD tidak berfungsi saat listrik padam (rujukan register MFK R24),Lift pasien,5,4,20,Sangat Tinggi,,,SIMULASI_UAT PJ IPSRS,2026-11-24T00:00:00.000Z,Ditugaskan
+IPSRS,K3-261110-0002,Kebakaran / Darurat,SIMULASI_UAT Sistem proteksi kebakaran bermasalah (rujukan register MFK R1),Gedung RS,5,3,15,Sangat Tinggi,,,SIMULASI_UAT PJ IPSRS,2026-11-24T00:00:00.000Z,Ditugaskan
+Rawat Inap,K3-261110-0001,Mekanik / Listrik,SIMULASI_UAT Stop kontak bertumpuk (octopus wiring) dipakai untuk alat medis dan elektronik pribadi; kabel rol tidak standar.,Ruang perawatan lantai 3 (simulasi),,,,Belum dinilai,,,,,Baru

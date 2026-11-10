@@ -1,0 +1,4 @@
+﻿penanda,kode_kasus,id_uji,tanggal_skenario,persona,unit_lokasi,jenis_laporan,kategori,uraian,mendesak,tindak_lanjut_di_aplikasi,rujukan_dokumen
+SIMULASI_UAT,IN-01,UAT-19/22/23/24/25/36,2026-10-07,P3,Kesling – jalur angkut limbah ke TPS,Kejadian,Biologi/Limbah,Petugas tertusuk jarum suntik bekas di kantong kuning,Mendesak,"Investigasi INV, 5 Why 3 tingkat, Fishbone (Metode), CAPA ke PJ Kesling, disetujui P1",MFK R25
+SIMULASI_UAT,IN-02,UAT-21,2026-10-07,P3,Farmasi – depo,Bahaya (anonim),Psikososial,Beban kerja shift malam berlebih,Tidak,"Kode lacak; status Baru",—
+SIMULASI_UAT,IN-03,UAT-10,2026-09-30,P2,IPSRS,Bahaya,Fisik,(uraian kosong — uji validasi),Tidak,Diterima sistem (temuan G-02),—
